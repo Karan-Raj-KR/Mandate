@@ -61,8 +61,8 @@ async function main(): Promise<void> {
   children.push(spawn(tsx, ["src/server.ts"], { cwd: resolve(ROOT, "packages/payment-service"), env: { ...env, DEMO_MODE: "1" }, stdio: "inherit" }));
   await waitFor(`${SERVICE}/balance`, "payment service");
 
-  console.log("seeding a fresh delegation chain...");
-  execFileSync(tsx, ["scripts/seed.ts"], { cwd: ROOT, env, stdio: "inherit" });
+  console.log("seeding a fresh delegation chain and publishing it to Arkiv and ENS...");
+  execFileSync(tsx, ["scripts/fresh-chain.ts"], { cwd: ROOT, env, stdio: "inherit" });
 
   console.log("starting dashboard...");
   children.push(

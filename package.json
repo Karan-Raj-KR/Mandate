@@ -14,6 +14,7 @@
     "service:demo": "DEMO_MODE=1 pnpm --filter @mandate/payment-service start",
     "demo": "tsx scripts/demo.ts",
     "seed": "tsx scripts/seed.ts",
+    "fresh-chain": "tsx scripts/fresh-chain.ts",
     "pay": "tsx scripts/pay.ts",
     "attack:amplify": "tsx scripts/attacks/amplify.ts",
     "attack:revoke": "tsx scripts/attacks/revoke-root.ts",
