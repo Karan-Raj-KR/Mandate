@@ -26,8 +26,8 @@ const LINKS = ["ab", "bc", "cd", "de", "ef"].map(([from, to]) => ({ from, to, pu
 
 export function SiteHeader() {
   return (
-    <header className="relative overflow-hidden border-b border-line bg-panel">
-      <div aria-hidden className="pointer-events-none absolute inset-0 opacity-35">
+    <header className="relative z-40 border-b border-line bg-panel">
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden opacity-35 motion-reduce:hidden">
         <CircuitBoard nodes={NODES} connections={LINKS} width={1920} height={76} showGrid={false} variant="dark" traceWidth={1} pulseSpeed={4} traceColor="rgba(138,147,160,.18)" />
       </div>
       <div className="relative mx-auto flex max-w-[1800px] flex-wrap items-center gap-x-8 gap-y-2 px-4 py-4 md:px-8">
