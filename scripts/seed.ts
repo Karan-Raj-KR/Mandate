@@ -11,11 +11,13 @@ import { getBalance } from "./lib/http.js";
 const USDC = (n: number): bigint => BigInt(n) * 1_000_000n;
 const now = Math.floor(Date.now() / 1000);
 
+// Agent names hang off the ENS name we registered on Sepolia (ENS_ROOT_NAME in .env).
+const ENS_ROOT = process.env.ENS_ROOT_NAME ?? "mandate-agents.eth";
 const NAMES = {
-  owner: "treasury.dhruv.eth",
-  ops: "ops.treasury.dhruv.eth",
-  procure: "procure.ops.treasury.dhruv.eth",
-  settle: "settle.procure.ops.treasury.dhruv.eth",
+  owner: `treasury.${ENS_ROOT}`,
+  ops: `ops.treasury.${ENS_ROOT}`,
+  procure: `procure.ops.treasury.${ENS_ROOT}`,
+  settle: `settle.procure.ops.treasury.${ENS_ROOT}`,
 };
 
 async function main(): Promise<void> {

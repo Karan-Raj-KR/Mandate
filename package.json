@@ -11,6 +11,8 @@
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
     "service": "pnpm --filter @mandate/payment-service start",
+    "service:demo": "DEMO_MODE=1 pnpm --filter @mandate/payment-service start",
+    "demo": "tsx scripts/demo.ts",
     "seed": "tsx scripts/seed.ts",
     "pay": "tsx scripts/pay.ts",
     "attack:amplify": "tsx scripts/attacks/amplify.ts",

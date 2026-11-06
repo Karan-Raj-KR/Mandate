@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
@@ -9,8 +10,7 @@ import { erc20Abi } from "./erc20.js";
 export type Transfer = (target: Address, amount: bigint) => Promise<Hex>;
 
 function fakeTxHash(): Hex {
-  const bytes = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16));
-  return `0x${bytes.join("")}` as Hex;
+  return `0x${randomBytes(32).toString("hex")}`;
 }
 
 export function createSimulatedTransfer(): Transfer {

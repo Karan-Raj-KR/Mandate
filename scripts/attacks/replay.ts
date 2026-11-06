@@ -1,5 +1,6 @@
 import "dotenv/config";
 import type { UnsignedRequest } from "@mandate/core";
+import { demoAmount } from "../lib/amount.js";
 import { requirePk, serviceId } from "../lib/env.js";
 import { freshNonce } from "../lib/nonce.js";
 import { signRequest } from "../lib/signer.js";
@@ -17,7 +18,8 @@ async function main(): Promise<void> {
     leafId: leaf.id,
     audience: serviceId(),
     action: "payment.transfer",
-    amount: USDC(10),
+    // DEMO_AMOUNT lets a faucet-funded wallet run the demo with less than $10
+    amount: demoAmount(),
     target: "supplierA",
     nonce: freshNonce(),
     deadline: BigInt(Math.floor(Date.now() / 1000) + 120),

@@ -1,17 +1,28 @@
-import "dotenv/config";
+import { config as loadEnv } from "dotenv";
+import { fileURLToPath } from "node:url";
 import { createPublicClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 import type { Hex } from "viem";
-import { checkRevocation, loadVerifierConfig, makeRegistryReader, verifyLocal } from "@mandate/core";
+import { checkRevocation, loadVerifierConfig, makeRegistryReader, registryAbi, verifyLocal } from "@mandate/core";
 import { createApp } from "./app.js";
 import { getRealBalance, getSimulatedBalance } from "./ledger.js";
 import { createNonceStore } from "./nonces.js";
+import { createRunStore } from "./requests.js";
+import { createRpContextSigner, createWorldVerifier, withDemoBypass } from "./worldid.js";
 import { createTargetResolver } from "./targets.js";
 import { createRealTransfer, createSimulatedTransfer } from "./transfer.js";
 
+// pnpm runs this from packages/payment-service, so load the repo-root .env explicitly.
+// dotenv never overrides variables already set in the shell.
+loadEnv({ path: fileURLToPath(new URL("../../../.env", import.meta.url)) });
+
 const cfg = loadVerifierConfig();
-const simulated = process.env.SIMULATE === "1";
+// DEMO_MODE=1 is the no-money demo: simulated payments plus the labelled World ID bypass.
+// Each can still be set on its own (SIMULATE=1, WORLD_DEMO_BYPASS=1).
+const demoMode = process.env.DEMO_MODE === "1";
+const simulated = demoMode || process.env.SIMULATE === "1";
+if (simulated) console.warn("⚠ simulated payments: no USDC moves and tx hashes are not on any chain. Every check still runs for real.");
 
 // Revocation is always checked against the real registry — SIMULATE only
 // fakes the money movement (transfer/balance), never the security checks.
@@ -33,6 +44,26 @@ const getBalance = simulated
   : async () =>
       getRealBalance({ cfg, rpcUrl, serviceAddress: privateKeyToAccount(servicePk!).address });
 
+// Display only: per-hop revocation status for the dashboard. Never used to authorize anything.
+const statusOf = async (chain: { issuer: `0x${string}`; id: `0x${string}` }[]) =>
+  [...(await publicClient.readContract({
+    address: cfg.registry,
+    abi: registryAbi,
+    functionName: "statusOf",
+    args: [chain.map((d) => d.issuer), chain.map((d) => d.id)],
+  }))];
+
+// World ID step-up is enabled only when fully configured. Otherwise requests above the threshold stay denied.
+const worldRp = process.env.WORLD_RP_ID;
+const worldKey = process.env.WORLD_SIGNING_KEY;
+const worldEnv = process.env.WORLD_ENV === "staging" ? "staging" : "production";
+const worldAction = process.env.WORLD_ACTION ?? "approve-payment";
+const demoBypass = demoMode || process.env.WORLD_DEMO_BYPASS === "1";
+if (demoBypass) console.warn("⚠ WORLD_DEMO_BYPASS=1: step-up can be approved WITHOUT World ID. Demo only.");
+const realVerifier = worldRp ? createWorldVerifier({ rpId: worldRp, environment: worldEnv }) : undefined;
+const approvalVerifier = demoBypass ? withDemoBypass(realVerifier) : realVerifier;
+const worldContext = worldRp && worldKey ? createRpContextSigner({ signingKeyHex: worldKey, action: worldAction, rpId: worldRp }) : undefined;
+
 const app = createApp({
   cfg,
   verifyLocal,
@@ -40,9 +71,24 @@ const app = createApp({
   reader,
   transfer,
   getBalance,
-  resolveTarget: createTargetResolver(),
+  // Simulated payments never touch the address, so an UNSET supplier gets a placeholder. A set but malformed one still denies.
+  resolveTarget: createTargetResolver(
+    simulated
+      ? {
+          ...process.env,
+          SUPPLIER_A: process.env.SUPPLIER_A || "0x00000000000000000000000000000000000a11ce",
+          SUPPLIER_B: process.env.SUPPLIER_B || "0x0000000000000000000000000000000000000b0b",
+        }
+      : process.env,
+  ),
   nonceStore: createNonceStore(),
   simulated,
+  runs: createRunStore(),
+  approvalVerifier,
+  worldContext,
+  demoBypass,
+  statusOf,
+  dashboardOrigin: process.env.DASHBOARD_ORIGIN,
 });
 
 const port = Number(process.env.PORT ?? 4000);

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@mandate/core": "workspace:*",
+    "@worldcoin/idkit-core": "4.6.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "viem": "^2.21.54"
