@@ -1,51 +1,113 @@
 @import "tailwindcss";
 
-/* "Circuit breaker": graphite, one lime accent for flowing authority, red only for trips/denials */
+/* One system: near-black ground, red brand. Red also means denied; green only ever means approved. */
 @theme {
-  --color-bg: #0b0d10;
-  --color-panel: #12151a;
-  --color-line: #232831;
-  --color-fg: #e6e8eb;
-  --color-muted: #8a93a0;
-  --color-lime: #c6ff3d;
-  --color-bad: #ff4d4d;
-  --color-warn: #f5b83d; /* pending only */
-  --font-display: var(--font-bricolage), sans-serif;
+  --color-bg: #0b0909;
+  --color-panel: #171312;
+  --color-line: #2c2321;
+  --color-fg: #faf5f3;
+  --color-muted: #b9aeab;
+  --color-brand: #d9231a;
+  --color-ok: #62d68f;
+  --color-bad: #ff5a4f;
+  --color-warn: #f5b83d; /* pending and mock only */
+  --font-display: var(--font-geist), sans-serif;
   --font-sans: var(--font-geist), sans-serif;
   --font-mono: var(--font-geist-mono), monospace;
 }
 
+:root { --frame: clamp(8px, 2.6vw, 40px); }
+html { scroll-behavior: smooth; }
 html.presenter { font-size: 125%; }
-body { background: var(--color-bg); color: var(--color-fg); }
+body { background: var(--color-bg); color: var(--color-fg); overflow-x: clip; letter-spacing: -0.01em; }
+.font-display { letter-spacing: -0.035em; }
 
-.panel, .permit { background: var(--color-panel); border: 1px solid var(--color-line); border-radius: 10px; }
+.m-display { font-weight: 500; letter-spacing: -0.05em; line-height: 0.98; }
+.m-serif { font-family: var(--font-serif), serif; font-style: italic; font-weight: 400; letter-spacing: -0.02em; }
+.m-gutter { padding-inline: calc(var(--frame) + clamp(1rem, 4vw, 4rem)); }
 
-/* status label (replaced by the breaker result in a later step) */
-.stamp { display: inline-block; padding: .3em .6em; border: 1px solid currentColor; border-radius: 6px; font-family: var(--font-mono); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; line-height: 1; }
+/* the red ring: a thick transparent border keeps the inner edge rounded, the outer edge sits offscreen */
+.m-frame {
+  position: fixed; inset: -60px; z-index: 50; pointer-events: none;
+  border: calc(60px + var(--frame)) solid transparent;
+  border-radius: calc(84px + var(--frame));
+  background: #0a0606;
+  background-clip: border-box;
+  mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0) border-box;
+  mask-composite: exclude;
+}
+/* only the glow breathes: the ring itself stays opaque so scrolled content never shows through */
+.m-frame::before {
+  content: ""; position: absolute; inset: calc(-60px - var(--frame));
+  background:
+    radial-gradient(38% 34% at 50% 4%, #ff3b24, transparent),
+    radial-gradient(38% 34% at 50% 96%, #ff3b24, transparent),
+    radial-gradient(30% 60% at 2% 50%, #a3120c, transparent),
+    radial-gradient(30% 60% at 98% 50%, #a3120c, transparent);
+  animation: m-breathe 7s ease-in-out infinite alternate;
+}
+.m-edge { position: fixed; inset: var(--frame); z-index: 50; pointer-events: none; border: 1px solid rgb(255 130 110 / 0.28); border-radius: 24px; }
 
-/* ledger rows */
-.ruled { background-image: repeating-linear-gradient(to bottom, transparent 0 2.4rem, var(--color-line) 2.4rem calc(2.4rem + 1px)); }
+.m-band { margin-inline: calc(-1 * clamp(1rem, 4vw, 4rem)); padding: calc(var(--frame) + 6rem) clamp(1rem, 4vw, 4rem) 2.5rem; }
+.m-panel { background: radial-gradient(95% 120% at 12% 0%, #d9231a 0%, #a3120c 36%, #420808 70%, #120c0b 100%); }
+.m-hero { background: radial-gradient(85% 80% at 50% 42%, #e5261a 0%, #b5140d 42%, #560a0a 76%, #0b0909 100%); }
+.m-glow { background: radial-gradient(50% 100% at 50% 100%, #ff7a5c 0%, #e8241a 38%, #700f0f 72%, transparent 100%); }
+
+.m-btn { display: inline-flex; align-items: center; justify-content: center; gap: .6em; min-height: 48px; padding: 0 1.5rem; background: var(--color-fg); color: #0b0909; font-weight: 500; transition: transform 300ms cubic-bezier(.16,1,.3,1), background 300ms ease, color 300ms ease; }
+.m-btn:hover:not(:disabled) { background: #0b0909; color: var(--color-fg); }
+.m-btn:active:not(:disabled) { transform: scale(0.97); }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid #ffb4a8; outline-offset: 3px; }
+
+.m-lift { transition: transform 500ms cubic-bezier(.16,1,.3,1), border-color 500ms ease; }
+.m-lift:hover { transform: translateX(6px); }
+.m-spin { animation: m-spin 90s linear infinite; }
+.m-float > * { animation: m-float 6s ease-in-out infinite alternate; }
+.m-float > :nth-child(2) { animation-delay: -2s; }
+.m-float > :nth-child(3) { animation-delay: -4s; }
+@keyframes m-spin { to { rotate: 360deg; } }
+@keyframes m-float { from { translate: 0 -5px; } to { translate: 0 5px; } }
+@keyframes m-breathe { from { opacity: 0.82; } to { opacity: 1; } }
+
+.panel, .permit { background: var(--color-panel); }
+
+
+/* paper objects on the dark desk: invoices, receipts, the owner's line. Tokens flip so anything inside just works. */
+.paper { --color-fg: #141110; --color-muted: #5d5550; --color-bad: #c4160f; --color-ok: #0b7a3c; --color-warn: #7d5200; --color-line: #bdb5ab; background: #e8e4dd; color: #141110; }
+.paper-torn { mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 18px 100%; }
+
+/* rubber stamp */
+.stamp-ink { display: inline-block; padding: .12em .4em; border: 3px solid currentColor; font-weight: 700; letter-spacing: .04em; line-height: 1.1; rotate: -7deg; mix-blend-mode: multiply; animation: thunk 420ms 200ms cubic-bezier(.3,1.4,.5,1) both; }
+@keyframes thunk { from { opacity: 0; scale: 1.9; } to { opacity: .92; scale: 1; } }
+
+/* a permit: perforated ticket, notched at the tear line */
+.ticket { --stub: 72px; background: #1e1715; mask: radial-gradient(circle 8px at 0 var(--stub), #0000 97%, #000), radial-gradient(circle 8px at 100% var(--stub), #0000 97%, #000); mask-composite: intersect; }
+.ticket-body { border-top: 2px dashed rgb(255 255 255 / 0.16); margin-inline: 12px; padding-inline: 4px; }
+.ticket-grew { --color-fg: #fff; --color-muted: rgb(255 255 255 / .85); --color-bad: #fff; --color-ok: #fff; --color-warn: #ffe2a8; background: linear-gradient(90deg, var(--color-brand) var(--limit, 100%), rgb(255 255 255 / .55) var(--limit, 100%) calc(var(--limit, 100%) + 2px), #8f0f0a calc(var(--limit, 100%) + 2px)); color: #fff; }
+.ticket-grew .ticket-body { border-top-color: rgb(255 255 255 / .4); }
+.ticket-dead { background: repeating-linear-gradient(-45deg, #171211 0 8px, #241816 8px 9px); }
+.ticket-dead .ticket-amount { text-decoration: line-through; text-decoration-color: var(--color-bad); }
+.narrow { animation: narrow 900ms cubic-bezier(.16,1,.3,1) both; }
+@keyframes narrow { from { width: var(--from); opacity: 0; } 30% { opacity: 1; } }
+
+/* breaker switch */
+.switch { position: relative; display: block; width: 2.5rem; height: 1.25rem; background: #0b0909; }
+.switch::after { content: ""; position: absolute; top: 3px; bottom: 3px; left: 3px; width: 1rem; background: #5d5550; animation: flip 350ms cubic-bezier(.16,1,.3,1) both; animation-delay: inherit; }
+.switch[data-s="on"]::after { background: var(--color-ok); --x: calc(2.5rem - 1rem - 6px); }
+.switch[data-s="tripped"] { background: var(--color-brand); }
+.switch[data-s="tripped"]::after { background: #fff; }
+.switch[data-s="skipped"] { background: repeating-linear-gradient(-45deg, #0b0909 0 4px, #4a3610 4px 5px); }
+.switch[data-s="skipped"]::after { background: var(--color-warn); --x: .55rem; }
+@keyframes flip { from { translate: 0 0; } to { translate: var(--x, 0) 0; } }
 
 /* injected text: red underline */
 .injected { text-decoration: underline wavy var(--color-bad); text-underline-offset: 3px; }
 
-.enter { animation: enter 380ms ease-out both; }
-@keyframes enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-.draw-down { transform-origin: top; animation: draw 700ms ease-in both; }
-@keyframes draw { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-.spill { transform-origin: left; animation: spill 600ms 250ms ease-out both; }
+.enter { animation: enter 700ms cubic-bezier(.16,1,.3,1) both; }
+@keyframes enter { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.spill { transform-origin: left; animation: spill 800ms 250ms cubic-bezier(.16,1,.3,1) both; }
 @keyframes spill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
-/* current pulse travelling down a wire, once */
-.pulse { position: absolute; left: 50%; width: 10px; height: 26px; margin-left: -5px; border-radius: 9999px; background: var(--color-lime); box-shadow: 0 0 14px var(--color-lime); opacity: 0; animation: travel 650ms ease-in both; }
-@keyframes travel { 0% { top: 0; opacity: 0; } 15% { opacity: 1; } 100% { top: calc(100% - 26px); opacity: 0; } }
-
-/* breaker trip: spark flickers, the far side of the wire drops out */
-.spark { animation: spark 420ms steps(2) 3 both; }
-@keyframes spark { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: .2; } }
-.snap { animation: snap 500ms 300ms ease-out both; }
-@keyframes snap { from { transform: translateX(-14px); opacity: 1; stroke: var(--color-lime); } to { transform: none; opacity: 1; } }
-
 @media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

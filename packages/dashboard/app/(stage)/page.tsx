@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Gatekeeper, InvoiceSheet, PermitChain, RequestCard, StageColumn, Timeline, Typewriter, Verdict } from "@/components/chain";
 import { ApprovalPanel, needsApproval } from "@/components/approval";
 import { RunControls } from "@/components/run-controls";
+import { Moire } from "@/components/story/art";
 import { Button, Modal, useToast, usdc } from "@/components/ui";
 import { fetchTimeline, MOCK, mock, mockRevokeRoot, mockRun, type Run } from "@/lib/api";
 
@@ -127,48 +128,51 @@ export default function Stage() {
 
   return (
     <div className="space-y-6">
-      {/* scenario bar */}
-      <div className="flex flex-wrap items-stretch gap-3">
-        {/* segmented control; the active segment shows playback progress */}
-        <div role="radiogroup" aria-label="Scenario" className="panel flex min-w-0 flex-1 flex-wrap gap-1 p-1">
-          {SCENARIOS.map((s) => {
-            const active = pick === s.k;
-            return (
-              <button
-                key={s.k} type="button" role="radio" aria-checked={active} disabled={!MOCK} onClick={() => start(s.k)}
-                className={`relative min-w-52 flex-1 overflow-hidden rounded-lg px-4 py-2.5 text-left transition-colors disabled:opacity-50 ${active ? "bg-lime/10" : "hover:bg-line/50"}`}
-              >
-                <span className={`font-mono text-xs ${active ? "text-lime" : "text-muted"}`}>0{s.k}</span> <span className="font-display text-lg font-semibold">{s.title}</span>
-                <span className="block text-xs text-muted">{s.line}</span>
-                {active && <span aria-hidden className="absolute bottom-0 left-0 h-0.5 bg-lime transition-[width] duration-500" style={{ width: `${Math.min(1, beat / beats.length) * 100}%` }} />}
-              </button>
-            );
-          })}
+      <section className="m-band m-panel relative overflow-hidden">
+        <Moire className="m-spin pointer-events-none absolute -right-[8%] -top-[30%] size-[min(60vw,46rem)] opacity-20" tone="#ffd2c8" />
+        <h1 className="sr-only">Mandate demo</h1>
+        <p className="m-display relative min-h-[1em] text-[clamp(2.5rem,7vw,7rem)]" aria-live="polite">{caption}</p>
+        <div className="relative mt-10 flex flex-wrap items-end gap-x-10 gap-y-6">
+          <div role="radiogroup" aria-label="Scenario" className="grid min-w-0 flex-1 basis-full gap-x-8 gap-y-5 md:grid-cols-3 lg:basis-0">
+            {SCENARIOS.map((s) => {
+              const active = pick === s.k;
+              return (
+                <button
+                  key={s.k} type="button" role="radio" aria-checked={active} disabled={!MOCK} onClick={() => start(s.k)}
+                  className={`text-left transition-opacity duration-300 disabled:opacity-50 ${active ? "" : "opacity-70 hover:opacity-100"}`}
+                >
+                  <span aria-hidden className="mb-3 block h-[3px] bg-white/25"><span className="block h-full bg-fg transition-[width] duration-500" style={{ width: active ? `${Math.min(1, beat / beats.length) * 100}%` : 0 }} /></span>
+                  <span className="m-display block text-[clamp(1.5rem,2.4vw,2.25rem)]">{s.title}</span>
+                  <span className="mt-1 block text-sm">{s.line}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="w-full lg:w-auto">
+            <button type="button" disabled={!MOCK} onClick={() => start(pick)} className="m-btn w-full px-10 text-lg disabled:opacity-40 lg:w-auto">
+              <span aria-hidden className="border-y-[6px] border-l-[10px] border-y-transparent border-l-current" />{playing ? "Playing…" : "Play"}
+            </button>
+            <p className="mt-2 text-xs">1 2 3 pick · Space next · R reset</p>
+          </div>
         </div>
-        <div className="flex flex-col justify-center gap-1">
-          <Button tone="ink" disabled={!MOCK} onClick={() => start(pick)} className="px-6 text-base">{playing ? "Playing…" : "Play"}</Button>
-          <p className="font-mono text-[0.65rem] text-muted">1 2 3 pick · Space next · R reset</p>
-        </div>
-      </div>
+      </section>
 
       {liveError && <p className="panel border-bad p-2 text-sm text-bad">Can&apos;t read the payment service ({liveError}). Nothing is shown as paid until it answers.</p>}
       {!MOCK && <RunControls />}
 
       {!MOCK && run && needsApproval(run) && <ApprovalPanel run={run} />}
 
-      <p className="min-h-[2.5em] font-display text-2xl leading-snug md:text-3xl" aria-live="polite">{caption}</p>
-
       {run && (
-        <div className="grid items-start gap-8 lg:grid-cols-2 2xl:grid-cols-[1fr_1.45fr_1.15fr]">
-          <StageColumn n={1} title="The invoice">
+        <div className="grid items-start gap-8 lg:grid-cols-2 xl:grid-cols-[1fr_1.35fr_1.1fr] lg:[&>section:last-child]:col-span-2 xl:[&>section:last-child]:col-span-1">
+          <StageColumn title="The invoice">
             {shown("invoice") && <InvoiceSheet text={run.invoice} />}
             {shown("output") && <Typewriter label={run.agentOutput.label} text={run.agentOutput.text} />}
           </StageColumn>
-          <StageColumn n={2} title="Authority, hop by hop">
+          <StageColumn title="Authority, hop by hop">
             {shown("permits") && <PermitChain run={run} showRevoked={shown("revoke") || (beats === BEATS && shown("permits"))} />}
             {shown("request") && <RequestCard run={run} />}
           </StageColumn>
-          <StageColumn n={3} title="The breaker">
+          <StageColumn title="The breaker">
             {shown("checks") && <Gatekeeper run={run} />}
             {shown("stamp") && <Verdict run={run} />}
           </StageColumn>
@@ -177,12 +181,12 @@ export default function Stage() {
 
       <div className="grid gap-6 md:grid-cols-[1fr_auto]">
         <div>
-          <h2 className="mb-2 font-display text-xl">Request log</h2>
+          <h2 className="m-serif mb-3 text-4xl">Request log</h2>
           <Timeline runs={runs} selected={run?.id} onSelect={(r) => { setRun(r); setBeat(99); setPlaying(false); }} />
         </div>
         {MOCK && (
           <div className="space-y-2 text-sm">
-            <h2 className="font-display text-xl">Also try</h2>
+            <h2 className="m-serif text-4xl">Also try</h2>
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => start("replay")}>Replay the last payment</Button>
               <Button onClick={() => setWorldOpen(true)}>Pay 20.00 USDC (needs a human)</Button>
