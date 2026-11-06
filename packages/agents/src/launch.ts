@@ -4,8 +4,8 @@ import { fileURLToPath } from "node:url";
 import { privateKeyToAccount } from "viem/accounts";
 import { loadVerifierConfig } from "@mandate/core";
 import { createAgent, HttpError } from "./agent.js";
-import { runInvoiceAgent, usdcToMinor } from "./llm.js";
-import { NAMES, PORTS, requirePk } from "./env.js";
+import { describeAuthority, runInvoiceAgent, usdcToMinor } from "./llm.js";
+import { NAMES, PORTS, openAiKey, requirePk } from "./env.js";
 
 export type Role = "ops" | "procure" | "settle";
 
@@ -33,11 +33,14 @@ export async function launch(role: Role): Promise<void> {
     agent.addRoute("/invoice", async (body) => {
       const name = body?.invoice;
       if (name !== "normal" && name !== "malicious") throw new HttpError(400, 'invoice must be "normal" or "malicious"');
-      const apiKey = process.env.OPENAI_API_KEY;
+      const apiKey = openAiKey();
       if (!apiKey) throw new HttpError(503, "OPENAI_API_KEY is not set");
       const invoice = readFileSync(fileURLToPath(new URL(`../../../fixtures/invoices/${name}.txt`, import.meta.url)), "utf8");
       const now = Math.floor(Date.now() / 1000);
+      const held = agent.chain().at(-1);
+      if (!held) throw new HttpError(409, "I hold no authority yet");
       const r = await runInvoiceAgent({
+        authority: describeAuthority(held.scope, now),
         apiKey,
         model: process.env.OPENAI_MODEL || undefined,
         invoice,
@@ -46,7 +49,7 @@ export async function launch(role: Role): Promise<void> {
             {
               subject: settleAddress,
               subjectName: NAMES.settle,
-              scope: { actions: a.actions, maxAmount: usdcToMinor(a.max_amount_usdc), expiry: now + a.expiry_hours * 3600, targets: a.targets },
+              scope: { actions: a.actions, maxAmount: usdcToMinor(a.max_amount_usdc), expiry: now + a.expiry_minutes * 60, targets: a.targets },
             },
             { enforceNarrowing: false },
           );

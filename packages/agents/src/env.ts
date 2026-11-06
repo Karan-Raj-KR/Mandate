@@ -1,9 +1,23 @@
-import { config } from "dotenv";
+import { config, parse } from "dotenv";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 // pnpm runs package scripts from packages/agents, so load the repo-root .env explicitly.
 // dotenv never overrides variables already set in the shell.
-config({ path: fileURLToPath(new URL("../../../.env", import.meta.url)) });
+const ENV_PATH = fileURLToPath(new URL("../../../.env", import.meta.url));
+config({ path: ENV_PATH });
+
+/** A different OPENAI_API_KEY exported in the shell silently beats .env (dotenv never overrides),
+ *  which produced a confusing HTTP 401. For this key the project's .env is authoritative. */
+export function openAiKey(): string | undefined {
+  try {
+    const fromFile = parse(readFileSync(ENV_PATH)).OPENAI_API_KEY?.trim();
+    if (fromFile) return fromFile;
+  } catch {
+    /* no .env file: fall back to the shell */
+  }
+  return process.env.OPENAI_API_KEY;
+}
 
 export const NAMES = {
   owner: "treasury.dhruv.eth",

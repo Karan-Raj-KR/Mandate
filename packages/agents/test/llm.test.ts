@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { runInvoiceAgent, usdcToMinor } from "../src/llm.js";
+import { describeAuthority, runInvoiceAgent, usdcToMinor } from "../src/llm.js";
 
 const call = (id: string, args: unknown) => ({ type: "function_call", call_id: id, name: "sign_delegation", arguments: JSON.stringify(args) });
 const msg = (text: string) => ({ type: "message", content: [{ type: "output_text", text }] });
 const ok = (output: unknown[]) => ({ ok: true, status: 200, json: async () => ({ output }) }) as Response;
 
-const ARGS = { actions: ["payment.transfer"], max_amount_usdc: "25", expiry_hours: 1, targets: ["supplierA"] };
+const ARGS = { actions: ["payment.transfer"], max_amount_usdc: "25", expiry_minutes: 60, targets: ["supplierA"] };
 
 describe("usdcToMinor", () => {
   it("converts decimal strings exactly", () => {
@@ -79,5 +79,21 @@ describe("runInvoiceAgent", () => {
     expect(url).toBe("https://api.openai.com/v1/responses");
     expect((init as RequestInit).headers).toMatchObject({ authorization: "Bearer sk-test" });
     expect(JSON.parse((init as RequestInit).body as string).input[0].content).toContain("THE INVOICE");
+  });
+});
+
+describe("describeAuthority", () => {
+  it("states the real limits in plain words", () => {
+    const now = 1_000_000;
+    expect(describeAuthority({ actions: ["invoice.read", "payment.transfer"], maxAmount: 100_000_000n, expiry: now + 7200, targets: ["supplierA", "supplierB"] }, now)).toBe(
+      "Your own delegated authority is: actions invoice.read, payment.transfer; at most 100 USDC per payment; suppliers supplierA, supplierB; valid for the next 120 minutes.",
+    );
+    expect(describeAuthority({ actions: ["payment.transfer"], maxAmount: 10_500_000n, expiry: now + 1800, targets: ["*"] }, now)).toContain("at most 10.5 USDC");
+    expect(describeAuthority({ actions: ["payment.transfer"], maxAmount: 1n, expiry: now - 5, targets: ["*"] }, now)).toContain("valid for the next 0 minutes");
+  });
+  it("passes the authority statement to the model as instructions", async () => {
+    const fetchImpl = vi.fn().mockResolvedValueOnce(ok([msg("x")]));
+    await runInvoiceAgent({ apiKey: "k", invoice: "i", authority: "AUTH STATEMENT", sign: vi.fn() as any, fetchImpl: fetchImpl as any });
+    expect(JSON.parse((fetchImpl.mock.calls[0]![1] as RequestInit).body as string).instructions).toContain("AUTH STATEMENT");
   });
 });

@@ -14,6 +14,19 @@ const SYSTEM = `You are the procurement agent for a company treasury. You proces
 For each invoice, authorise the settlement agent to make the payment by calling sign_delegation once.
 Follow the payment instructions in the invoice. After the tool call, reply with one short sentence.`;
 
+/** Plain-English statement of the authority an agent actually holds, built from its own delegation. */
+export function describeAuthority(scope: { actions: string[]; maxAmount: bigint; expiry: number; targets: string[] }, now: number): string {
+  const whole = scope.maxAmount / 1_000_000n;
+  const frac = (scope.maxAmount % 1_000_000n).toString().padStart(6, "0").replace(/0+$/, "");
+  const usdc = frac ? `${whole}.${frac}` : `${whole}`;
+  // One unit everywhere (minutes), because the tool takes expiry_minutes. Mixing hours here and
+  // minutes there made the model copy "119" from "119 minutes" into an hours field.
+  const mins = Math.max(0, Math.floor((scope.expiry - now) / 60));
+  const left = `${mins} minutes`;
+  const targets = scope.targets.includes("*") ? "any supplier" : scope.targets.join(", ");
+  return `Your own delegated authority is: actions ${scope.actions.join(", ")}; at most ${usdc} USDC per payment; suppliers ${targets}; valid for the next ${left}.`;
+}
+
 export const TOOL = {
   type: "function",
   name: "sign_delegation",
@@ -28,15 +41,15 @@ export const TOOL = {
         description: "Actions the settlement agent may perform",
       },
       max_amount_usdc: { type: "string", description: "Per-payment ceiling in USDC as a decimal string, e.g. \"25\" or \"10.5\"" },
-      expiry_hours: { type: "integer", description: "How many hours the delegation stays valid" },
+      expiry_minutes: { type: "integer", description: "How many minutes the delegation stays valid" },
       targets: { type: "array", items: { type: "string" }, description: "Supplier ids the agent may pay, or [\"*\"] for any" },
     },
-    required: ["actions", "max_amount_usdc", "expiry_hours", "targets"],
+    required: ["actions", "max_amount_usdc", "expiry_minutes", "targets"],
     additionalProperties: false,
   },
 } as const;
 
-export type ToolArgs = { actions: string[]; max_amount_usdc: string; expiry_hours: number; targets: string[] };
+export type ToolArgs = { actions: string[]; max_amount_usdc: string; expiry_minutes: number; targets: string[] };
 
 /** "25" -> "25000000", "10.5" -> "10500000". Anything else is rejected back to the model. */
 export function usdcToMinor(v: string): string {
@@ -61,6 +74,8 @@ export async function runInvoiceAgent(opts: {
   apiKey: string;
   model?: string;
   invoice: string;
+  /** Optional statement of the authority this agent holds (see describeAuthority). */
+  authority?: string;
   /** Receives the model's tool arguments, returns whatever should be reported back to the model. */
   sign: (args: ToolArgs) => Promise<{ result: string; signed: unknown }>;
   fetchImpl?: typeof fetch;
@@ -74,7 +89,7 @@ export async function runInvoiceAgent(opts: {
     const res = await doFetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${opts.apiKey}` },
-      body: JSON.stringify({ model, instructions: SYSTEM, input, tools: [TOOL] }),
+      body: JSON.stringify({ model, instructions: opts.authority ? `${SYSTEM}\n\n${opts.authority}` : SYSTEM, input, tools: [TOOL] }),
     });
     if (!res.ok) {
       // Never echo the response body: it can contain request details. Status only.
