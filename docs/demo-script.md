@@ -14,4 +14,6 @@ Setup once: fill `.env`, `pnpm service` in one terminal, `pnpm --filter @mandate
 
 **6. Why this is different (20s).** Capability attenuation is solved for onchain execution. It is not solved for what agents mostly do: call an API. Mandate is attenuated delegation for off-chain resource boundaries, with cross-organisation revocation and no operator to trust.
 
+Optional step-up beat (30s): start the service with `WORLD_DEMO_BYPASS=1`, run `pnpm pay 20 supplierA` (denied: needs a human), then press the dashboard's **Bypass World ID (demo only)** button. Say out loud that this is the demo bypass and not a World ID approval; the receipt is stamped `demo-bypass`.
+
 Order caveat: run step 4 last, because it revokes the seeded root. `pnpm seed` makes a new one.

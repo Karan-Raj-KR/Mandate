@@ -14,7 +14,7 @@ Owner ─▶ ops ─▶ procurement (LLM, reads invoices) ─▶ settlement ─�
 - **Valid payment executes.** Settlement pays supplierA through the payment service, which verifies the chain and the request, then sends Sepolia USDC.
 - **Amplification is denied, with no side effect.** A delegation that widens actions, amount or targets is rejected with every violation named on the offending edge, and the balance does not change.
 - **Revoking an ancestor denies a previously valid request.** One transaction on the registry, a fresh nonce, `REVOKED` (not replay).
-- **Step-up above $15** needs a World ID approval bound to that exact request. Not configured means denied.
+- **Step-up above $15** needs a World ID approval bound to that exact request. Not configured means denied. For demos without a verified human, `WORLD_DEMO_BYPASS=1` adds a clearly labelled **demo bypass** (a dashboard button) that replaces only that step, is stamped `demo-bypass` in the receipt and history, and never overrides the chain, scope, revocation or replay checks.
 - **Discovery from an ENS name.** `pnpm --filter @mandate/cli verify settle.procure.ops.treasury.mandate-agents.eth` rebuilds and verifies the three-hop chain.
 
 Evidence from a live Sepolia run, with transaction links: [docs/milestone-run.md](docs/milestone-run.md).
@@ -82,6 +82,7 @@ pnpm --filter @mandate/dashboard dev        # dashboard (set NEXT_PUBLIC_SERVICE
 
 ## Honest limits
 
+- World ID is built and tested but has not been run against World's live API (none of the team has a verified World ID). The step-up demo uses the labelled demo bypass. Never enable `WORLD_DEMO_BYPASS` outside a demo.
 - `maxAmount` is per execution, not a budget. Replay protection is in memory. The payment adapter is backend-controlled.
 - The two current OpenAI models we tried did not fall for the poisoned invoice (0 of 12 runs). The attack is demonstrated with a scripted rogue agent, and the service stops it. See [docs/llm-agent.md](docs/llm-agent.md).
 - `dhruv.eth` already belongs to someone else on Sepolia, so the spec's names are replaced by `mandate-agents.eth` ([docs/ens.md](docs/ens.md)).

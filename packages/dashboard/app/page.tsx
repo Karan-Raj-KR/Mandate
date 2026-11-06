@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Gatekeeper, InvoiceSheet, PermitChain, RequestCard, StageColumn, Timeline, Typewriter, Verdict } from "@/components/chain";
+import { ApprovalPanel, needsApproval } from "@/components/approval";
 import { Button, Modal, useToast, usdc } from "@/components/ui";
 import { fetchTimeline, MOCK, mock, mockRevokeRoot, mockRun, type Run } from "@/lib/api";
 
@@ -151,6 +152,8 @@ export default function Stage() {
 
       {liveError && <p className="panel border-bad p-2 text-sm text-bad">Can&apos;t read the payment service ({liveError}). Nothing is shown as paid until it answers.</p>}
       {!MOCK && <p className="text-sm text-muted">Live: start agents from a terminal (<span className="font-mono">pnpm pay 10 supplierA · pnpm attack:amplify · pnpm attack:revoke</span>); each decision plays here.</p>}
+
+      {!MOCK && run && needsApproval(run) && <ApprovalPanel run={run} />}
 
       <p className="min-h-[2.5em] font-display text-2xl leading-snug md:text-3xl" aria-live="polite">{caption}</p>
 
