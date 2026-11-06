@@ -110,8 +110,8 @@ export function PermitChain({ run, showRevoked }: { run: Run; showRevoked: boole
             {/* the revocation runs down through every child permit */}
             {voided && <div aria-hidden className="draw-down absolute -top-5 bottom-0 left-1/2 z-20 w-1 -translate-x-1/2 bg-bad" style={delay(300 + (i - firstRevoked) * 350)} />}
             <article
-              className={`permit mx-auto p-3 text-xs ${failures.length ? "!border-bad" : ""} ${voided ? "opacity-60" : ""}`}
-              style={{ width: `${width}%`, maxWidth: failures.length ? "112%" : undefined, marginLeft: failures.length ? "-6%" : undefined }}
+              className={`permit mx-auto w-(--wm) p-3 text-xs md:w-(--w) ${failures.length ? "!border-bad md:-ml-[6%]" : ""} ${voided ? "opacity-60" : ""}`}
+              style={{ "--w": `${width}%`, "--wm": `${Math.min(width, 100)}%` } as CSSProperties}
             >
               <p className="mb-2 flex justify-between font-mono text-[0.65rem] uppercase tracking-widest text-muted">
                 <span>Permit No. {short(d.id)}</span>
@@ -286,7 +286,7 @@ export function Verdict({ run }: { run: Run }) {
       <p className="font-mono text-[0.7rem] uppercase tracking-wider text-muted">Decision</p>
       <p className="mt-1 font-serif text-lg">Pay {usdc(r.amount)} to {r.target}</p>
       <div className="my-5 text-center">
-        <Stamp tone={v.ok ? "ok" : "bad"} big>{v.ok ? "Paid" : v.code === "REVOKED" ? "Denied · revoked" : "Denied"}</Stamp>
+        <Stamp tone={v.ok ? "ok" : "bad"} big>{v.ok ? "Paid" : "Denied"}</Stamp>
       </div>
       {v.ok ? (
         run.txHash && (run.mock

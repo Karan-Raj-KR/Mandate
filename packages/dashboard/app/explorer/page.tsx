@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ACTIONS } from "@mandate/core";
 import { Button, Hash, Stamp, time, usdc } from "@/components/ui";
 import { exploreAuthority, MOCK, type AuthorityRow } from "@/lib/api";
@@ -26,6 +26,9 @@ export default function Registry() {
       .then(setRows)
       .catch((e: Error) => { setRows(null); setError(e.message); });
   };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(search, []); // open on the demo owner's permits
 
   const shown = (rows ?? []).filter(({ d, depth }) =>
     (!f.issuer || d.issuerName.includes(f.issuer) || d.issuer.toLowerCase().includes(f.issuer.toLowerCase())) &&

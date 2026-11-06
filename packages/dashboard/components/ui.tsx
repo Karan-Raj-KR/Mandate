@@ -37,7 +37,7 @@ export function Badge({ tone, children }: { tone: Tone; children: ReactNode }) {
 
 /** Rubber stamp. `thunk` animates it landing. */
 export function Stamp({ tone, children, big, thunk = true }: { tone: "ok" | "bad" | "warn"; children: ReactNode; big?: boolean; thunk?: boolean }) {
-  return <span role="status" className={`stamp ${thunk ? "stamp-thunk" : ""} ${TONE[tone]} ${big ? "text-4xl md:text-5xl" : "text-sm"}`}>{children}</span>;
+  return <span role="status" className={`stamp whitespace-nowrap ${thunk ? "stamp-thunk" : ""} ${TONE[tone]} ${big ? "text-4xl md:text-5xl" : "text-sm"}`}>{children}</span>;
 }
 
 /** Monogram badge for a person/agent: "procure.ops.treasury.dhruv.eth" → "PR". */
