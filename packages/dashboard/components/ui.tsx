@@ -77,7 +77,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="fixed bottom-4 right-4 z-50 flex max-w-sm flex-col gap-2" role="status" aria-live="polite">
         {toasts.map((t) => (
-          <div key={t.id} className={`panel enter border-l-4 border-l-current px-3 py-2 font-mono text-xs ${TONE[t.tone]}`}>{t.text}</div>
+          <div key={t.id} className="panel enter flex items-center gap-2 px-3 py-2 font-mono text-xs shadow-2xl"><span aria-hidden className={`size-2 rounded-full bg-current ${TONE[t.tone]}`} /><span className={TONE[t.tone]}>{t.text}</span></div>
         ))}
       </div>
     </ToastCtx.Provider>

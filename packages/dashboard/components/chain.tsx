@@ -341,14 +341,17 @@ export function Verdict({ run }: { run: Run }) {
   );
 }
 
+/** Vertical request timeline, newest first. */
 export function Timeline({ runs, selected, onSelect }: { runs: Run[]; selected?: string; onSelect: (r: Run) => void }) {
   if (!runs.length) return null;
   return (
-    <ol className="panel ruled max-h-64 overflow-y-auto px-3 text-xs">
+    <ol className="panel relative max-h-72 overflow-y-auto py-2 pl-4 pr-3 text-xs">
+      <span aria-hidden className="absolute bottom-3 left-[1.6rem] top-3 w-px bg-line" />
       {runs.map((r) => (
-        <li key={r.id} className="flex h-[2.4rem] items-center">
-          <button type="button" onClick={() => onSelect(r)} className={`flex w-full items-center gap-3 text-left ${r.id === selected ? "text-lime" : ""}`}>
-            <span className="w-20 shrink-0 font-mono text-muted">{new Date(r.at * 1000).toLocaleTimeString("en-GB")}</span>
+        <li key={r.id}>
+          <button type="button" onClick={() => onSelect(r)} className={`relative flex w-full items-center gap-3 rounded-md py-1.5 pl-6 pr-2 text-left hover:bg-line/40 ${r.id === selected ? "bg-line/40" : ""}`}>
+            <span aria-hidden className={`absolute left-[0.45rem] size-2.5 rounded-full ${r.verdict.ok ? "bg-lime" : "bg-bad"}`} />
+            <span className="w-16 shrink-0 font-mono text-muted">{new Date(r.at * 1000).toLocaleTimeString("en-GB")}</span>
             <Badge tone={r.verdict.ok ? "ok" : "bad"}>{r.verdict.ok ? "Executed" : `Denied · ${r.verdict.code}`}</Badge>
             <span className="truncate font-mono">{usdc(r.request.amount)} → {r.request.target}</span>
           </button>

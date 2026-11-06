@@ -126,17 +126,23 @@ export default function Stage() {
   return (
     <div className="space-y-6">
       {/* scenario bar */}
-      <div className="flex flex-wrap items-stretch gap-2">
-        {SCENARIOS.map((s) => (
-          <button
-            key={s.k} type="button" disabled={!MOCK} onClick={() => start(s.k)}
-            className={`panel min-w-52 flex-1 px-4 py-2.5 text-left transition-colors disabled:opacity-50 ${pick === s.k ? "!border-lime" : "hover:!border-muted"}`}
-            aria-pressed={pick === s.k}
-          >
-            <span className={`font-mono text-xs ${pick === s.k ? "text-lime" : "text-muted"}`}>0{s.k}</span> <span className="font-display text-lg font-semibold">{s.title}</span>
-            <span className="block text-xs text-muted">{s.line}</span>
-          </button>
-        ))}
+      <div className="flex flex-wrap items-stretch gap-3">
+        {/* segmented control; the active segment shows playback progress */}
+        <div role="radiogroup" aria-label="Scenario" className="panel flex min-w-0 flex-1 flex-wrap gap-1 p-1">
+          {SCENARIOS.map((s) => {
+            const active = pick === s.k;
+            return (
+              <button
+                key={s.k} type="button" role="radio" aria-checked={active} disabled={!MOCK} onClick={() => start(s.k)}
+                className={`relative min-w-52 flex-1 overflow-hidden rounded-lg px-4 py-2.5 text-left transition-colors disabled:opacity-50 ${active ? "bg-lime/10" : "hover:bg-line/50"}`}
+              >
+                <span className={`font-mono text-xs ${active ? "text-lime" : "text-muted"}`}>0{s.k}</span> <span className="font-display text-lg font-semibold">{s.title}</span>
+                <span className="block text-xs text-muted">{s.line}</span>
+                {active && <span aria-hidden className="absolute bottom-0 left-0 h-0.5 bg-lime transition-[width] duration-500" style={{ width: `${Math.min(1, beat / beats.length) * 100}%` }} />}
+              </button>
+            );
+          })}
+        </div>
         <div className="flex flex-col justify-center gap-1">
           <Button tone="ink" disabled={!MOCK} onClick={() => start(pick)} className="px-6 text-base">{playing ? "Playing…" : "Play"}</Button>
           <p className="font-mono text-[0.65rem] text-muted">1 2 3 pick · Space next · R reset</p>
