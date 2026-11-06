@@ -284,3 +284,44 @@ describe("demo bypass (WORLD_DEMO_BYPASS)", () => {
     expect((await request(app).get("/world/config")).body.bypass).toBe(true);
   });
 });
+
+describe("review fixes", () => {
+  const sig = signalOf(req(2));
+
+  it("a request that is already a replay does not spend a one-time World proof", async () => {
+    const f = worldOk();
+    const transfer = vi.fn(async () => "0xdeadbeef" as Hex);
+    const app = createApp({
+      cfg, verifyLocal: async () => ({ ok: true }), checkRevocation: async () => ({ ok: true }),
+      reader: { read: async () => ({ revoked: false, blockTimestamp: 0 }) }, transfer, getBalance: async () => 1n,
+      resolveTarget: (t) => (t === "supplierA" ? ("0x4000000000000000000000000000000000000004" as Address) : null),
+      nonceStore: createNonceStore(), simulated: true, approvalVerifier: verifier(f),
+    });
+    const r = req(30);
+    expect((await request(app).post("/execute").send({ chain, request: r, worldProof: proof(signalOf(r)) })).status).toBe(200);
+    expect(f).toHaveBeenCalledOnce();
+    const again = await request(app).post("/execute").send({ chain, request: r, worldProof: proof(signalOf(r)) });
+    expect(again.body.code).toBe("REPLAY");
+    expect(f).toHaveBeenCalledOnce(); // the second proof never reached World
+    expect(transfer).toHaveBeenCalledOnce();
+  });
+
+  it("remembers a bounded number of spent proof nonces, forgetting the oldest first", async () => {
+    const v = createWorldVerifier({ rpId: "rp_test", environment: "production", fetchImpl: worldOk() as any, maxTracked: 2 });
+    const [a, b, c] = [proof(sig, { nonce: "a" }), proof(sig, { nonce: "b" }), proof(sig, { nonce: "c" })];
+    expect((await v(a, sig)).ok).toBe(true);
+    expect((await v(b, sig)).ok).toBe(true);
+    expect((await v(b, sig)).ok).toBe(false); // still remembered
+    expect((await v(c, sig)).ok).toBe(true); // evicts "a"
+    expect((await v(b, sig)).ok).toBe(false); // "b" is the newer of the two kept
+  });
+
+  it("answers the browser's CORS preflight on /world/context", async () => {
+    const app = createApp({ cfg, verifyLocal: async () => ({ ok: true }), checkRevocation: async () => ({ ok: true }), reader: { read: async () => ({ revoked: false, blockTimestamp: 0 }) }, transfer: async () => "0x" as Hex, getBalance: async () => 0n, resolveTarget: () => null, nonceStore: createNonceStore(), simulated: true });
+    const res = await request(app).options("/world/context");
+    expect(res.status).toBe(204);
+    expect(res.headers["access-control-allow-origin"]).toBe("http://localhost:3000");
+    expect(res.headers["access-control-allow-methods"]).toContain("POST");
+    expect(res.headers["access-control-allow-headers"]).toContain("content-type");
+  });
+});

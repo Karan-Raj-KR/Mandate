@@ -98,3 +98,23 @@ describe("GET /requests", () => {
     expect((await request(app).get("/requests")).body[0].revoked).toEqual([false]);
   });
 });
+
+describe("history labels", () => {
+  it("does not describe a denied or failed request as a payment inside its permit", async () => {
+    const { app } = build({ ok: false, code: "OUT_OF_SCOPE", detail: "amount exceeds ceiling" });
+    await request(app).post("/execute").send({ chain, request: req(20) });
+    await vi.waitFor(async () => expect((await request(app).get("/requests")).body).toHaveLength(1));
+    const [run] = (await request(app).get("/requests")).body;
+    expect(run.attempted).toBe("Request denied: OUT_OF_SCOPE");
+    expect(run.attempted).not.toContain("within its permit");
+  });
+
+  it("labels an approved above-threshold payment as a step-up, naming how it was approved", async () => {
+    const runs = createRunStore();
+    await runs.add({ chain: chain as any, request: req(21) as any, verdict: { ok: true }, now: 1, approval: "demo-bypass", txHash: "0xabc" as Hex });
+    const [run] = runs.list() as any[];
+    expect(run.scenario).toBe("stepup");
+    expect(run.attempted).toContain("demo bypass");
+    expect(run.stepUp).toEqual({ required: true, approved: "demo-bypass" });
+  });
+});

@@ -4,10 +4,12 @@
 export const dynamic = "force-dynamic";
 
 const SERVICE = process.env.NEXT_PUBLIC_SERVICE_URL ?? "";
+// In a production build this proxy is off unless explicitly allowed, so a deployed dashboard cannot become a bypass.
+const ENABLED = process.env.NODE_ENV !== "production" || process.env.ALLOW_DEMO_BYPASS_UI === "1";
 
 /** Is the bypass switched on at the service? The button is hidden unless this says yes. */
 export async function GET() {
-  if (!SERVICE) return Response.json({ bypass: false });
+  if (!SERVICE || !ENABLED) return Response.json({ bypass: false });
   try {
     const r = await fetch(`${SERVICE}/world/config`, { cache: "no-store" });
     const j = (await r.json()) as { bypass?: unknown };
@@ -19,6 +21,7 @@ export async function GET() {
 
 /** Re-sends an already signed request, unchanged, with the bypass flag. Nothing is re-signed or altered. */
 export async function POST(req: Request) {
+  if (!ENABLED) return Response.json({ error: "the demo bypass is disabled in production builds" }, { status: 404 });
   if (!SERVICE) return Response.json({ error: "no payment service configured" }, { status: 503 });
   let body: { chain?: unknown; request?: unknown };
   try {

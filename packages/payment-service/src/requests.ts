@@ -17,7 +17,8 @@ const ATTEMPTED: Record<Scenario, string> = {
   stepup: "A payment above the World ID threshold",
 };
 
-function scenarioOf(v: Verdict): Scenario {
+function scenarioOf(v: Verdict, approved: boolean): Scenario {
+  if (approved) return "stepup";
   if (v.ok) return "legit";
   switch (v.code) {
     case "AMPLIFICATION": return "amplify";
@@ -57,13 +58,21 @@ export function createRunStore(max = 50): RunStore {
       } catch {
         /* display only */
       }
-      const scenario = scenarioOf(verdict);
+      const scenario = scenarioOf(verdict, approval !== undefined);
+      // Only the named attack scenarios and an ordinary success get the canned description.
+      // Any other denial says what it was, instead of claiming a payment inside its permit.
+      const attempted =
+        !verdict.ok && !["AMPLIFICATION", "REPLAY", "REVOKED", "STEP_UP_REQUIRED"].includes(verdict.code)
+          ? `Request denied: ${verdict.code}`
+          : scenario === "stepup" && approval
+            ? `A payment above the approval threshold, approved by ${approval === "demo-bypass" ? "the demo bypass (not World ID)" : "World ID"}`
+            : ATTEMPTED[scenario];
       runs.unshift({
         id: `0x${randomBytes(32).toString("hex")}`,
         at: now,
         scenario,
         mock: false,
-        attempted: ATTEMPTED[scenario],
+        attempted,
         invoice: "",
         agentOutput: {
           label: "Scripted fixture",

@@ -105,6 +105,13 @@ export function createApp(deps: AppDeps): Express {
       const proof = req.body?.worldProof;
       let detail = "amount requires fresh World ID approval";
       if (proof !== undefined && deps.approvalVerifier) {
+        // A request that is already a replay must not spend a one-time World proof.
+        if (deps.nonceStore.has(request.nonce)) {
+          log("✗", "REPLAY", `nonce ${request.nonce} already used`);
+          res.status(403).json({ ok: false, code: "REPLAY", detail: "nonce already used" });
+          record({ ok: false, code: "REPLAY", detail: "nonce already used" });
+          return;
+        }
         const approved = await deps.approvalVerifier(proof, approvalSignal(request, deps.cfg));
         if (approved.ok) {
           approval = approved.method;
@@ -190,6 +197,13 @@ export function createApp(deps: AppDeps): Express {
   });
 
   // Starts a browser approval: returns the signal the proof must be bound to, plus the signed rp_context.
+  app.options("/world/context", (_req: Request, res: Response) => {
+    res.setHeader("access-control-allow-origin", deps.dashboardOrigin ?? "http://localhost:3000");
+    res.setHeader("access-control-allow-methods", "POST, OPTIONS");
+    res.setHeader("access-control-allow-headers", "content-type");
+    res.status(204).end();
+  });
+
   app.post("/world/context", (req: Request, res: Response) => {
     res.setHeader("access-control-allow-origin", deps.dashboardOrigin ?? "http://localhost:3000");
     if (!deps.worldContext) {

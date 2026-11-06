@@ -334,7 +334,7 @@ export function Verdict({ run }: { run: Run }) {
       {run.stepUp.required && (
         <p className="border-t border-line pt-2 text-xs">
           World ID approval required above $15:{" "}
-          {run.stepUp.approvedNonce === r.nonce ? <Badge tone="ok">Approved for this exact request</Badge> : <Badge tone="bad">Not approved for this request</Badge>}
+          {run.stepUp.approved === "demo-bypass" ? <Badge tone="warn">Demo bypass, not World ID</Badge> : run.stepUp.approvedNonce === r.nonce ? <Badge tone="ok">Approved for this exact request</Badge> : <Badge tone="bad">Not approved for this request</Badge>}
         </p>
       )}
     </div>

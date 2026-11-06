@@ -3,6 +3,7 @@ import { createPublicClient, createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 import type { UnsignedRequest } from "@mandate/core";
+import { demoAmount } from "../lib/amount.js";
 import { requireEnv, requirePk, serviceId } from "../lib/env.js";
 import { freshNonce } from "../lib/nonce.js";
 import { signRequest } from "../lib/signer.js";
@@ -44,7 +45,7 @@ async function main(): Promise<void> {
     leafId: leaf.id,
     audience: serviceId(),
     action: "payment.transfer",
-    amount: BigInt(Math.round(Number(process.env.DEMO_AMOUNT ?? "10") * 1_000_000)),
+    amount: demoAmount(),
     target: "supplierA",
     nonce: freshNonce(),
     deadline: BigInt(Math.floor(Date.now() / 1000) + 120),

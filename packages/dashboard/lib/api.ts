@@ -23,7 +23,7 @@ export type Run = {
   request: ExecutionRequest;
   verdict: Verdict;
   txHash?: Hex;
-  stepUp: { required: boolean; approvedNonce?: Hex };
+  stepUp: { required: boolean; approvedNonce?: Hex; approved?: "world-id" | "demo-bypass" };
 };
 
 // ---------- mock service (fixtures). Amplification uses core's real checkAllEdges; signatures are NOT verified. ----------
@@ -104,6 +104,8 @@ function reviveRun(r: Run): Run {
   return {
     ...r,
     mock: false,
+    // the service says HOW a request was approved; the UI compares the approved nonce to the request's
+    stepUp: { ...r.stepUp, approvedNonce: r.stepUp.approved ? r.request.nonce : r.stepUp.approvedNonce },
     chain: r.chain.map((d) => ({ ...d, scope: { ...d.scope, maxAmount: BigInt(d.scope.maxAmount) } })),
     request: { ...r.request, amount: BigInt(r.request.amount), deadline: BigInt(r.request.deadline) },
   };

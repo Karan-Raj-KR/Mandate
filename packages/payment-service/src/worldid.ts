@@ -43,11 +43,15 @@ export function createWorldVerifier(opts: {
   environment: "production" | "staging";
   fetchImpl?: typeof fetch;
   baseUrl?: string;
+  /** How many spent proof nonces to remember (oldest forgotten first). A forgotten proof is still bound to one
+   *  request digest whose own nonce is single-use, so this only bounds memory. */
+  maxTracked?: number;
 }): ApprovalVerifier {
   const doFetch = opts.fetchImpl ?? fetch;
   const base = opts.baseUrl ?? "https://developer.world.org/api/v4/verify";
   // Each approval proof is usable once. Burned BEFORE the network call, so a failure still burns it (fail closed).
-  const usedNonces = new Set<string>();
+  const usedNonces = new Map<string, number>();
+  const maxTracked = opts.maxTracked ?? 10_000;
 
   return async (proof, signal) => {
     try {
@@ -66,7 +70,8 @@ export function createWorldVerifier(opts: {
 
       if (typeof p.nonce !== "string" || !p.nonce) return deny("proof has no nonce");
       if (usedNonces.has(p.nonce)) return deny("this approval was already used");
-      usedNonces.add(p.nonce);
+      usedNonces.set(p.nonce, Date.now());
+      while (usedNonces.size > maxTracked) usedNonces.delete(usedNonces.keys().next().value as string);
 
       const res = await doFetch(`${base}/${encodeURIComponent(opts.rpId)}`, {
         method: "POST",
