@@ -1,7 +1,8 @@
 export * from "./types.js";
 export * from "./config.js";
+export * from "./narrow.js";
 
-// Dhruv's modules — add export lines here once they land, don't write his code.
+// Havinash's modules — add export lines here once they land, don't write his code.
 // export * from "./canonical.js";
 // export * from "./sign.js";
 // export * from "./verify.js";
