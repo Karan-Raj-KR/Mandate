@@ -10,3 +10,5 @@ Teams running AI agents that call paid or sensitive APIs, and the services those
 - After Mumbai: we have not committed to a roadmap, and we have no users yet. This is a hackathon build, so we are not claiming adoption. The part most reusable on its own is the verifier in `packages/core` plus the registry contract.
 
 **Live numbers (2026-11-06, Rabdi testnet):** 6 entities written across 2 delegation chains by the writer wallet in the README, all read back through the Authority Explorer and the `verify` CLI. 3 writes cost about 0.0007 tGLM. Evidence: [docs/milestone-run.md](../docs/milestone-run.md).
+
+**Update (2026-11-07):** chains from the first run have expired, as designed. A new 3-entity chain is live until 15 to 17 November, and it is the chain the ENS names point at.

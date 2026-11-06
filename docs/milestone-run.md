@@ -36,3 +36,18 @@ Service started with `pnpm service:demo` (simulated payments, labelled World ID 
 | `pnpm attack:replay` | first 200, second 403 `REPLAY` |
 | `pnpm attack:revoke` | real on-chain revoke [`0x5143…fb36`](https://sepolia.etherscan.io/tx/0x514300cb397f2d5d55c9c41b54d84524e9096e42b0a6b4fafe58cc3a8dfafb36), then 403 `REVOKED` |
 | Reset | re-seeded, republished to Arkiv and ENS; `verify settle.procure.ops.treasury.mandate-agents.eth` returns VERIFIED (root `0x7989…f7bf`) |
+
+# Fresh chain before submission (2026-11-07)
+
+The earlier chain's hops had expired off Arkiv, so `verify` was correctly returning DENIED. We seeded a new chain that lasts 8 to 10 days and published it to Arkiv and ENS.
+
+| Step | Result | Evidence |
+|---|---|---|
+| Publish to Arkiv | 3 entities, root `0xf5a2835f…de3f` | tx `0xef4377ea…d211`, `0x4da24695…2bd0`, `0x80372d3b…24e7` |
+| ENS records | 17 records for 4 names in one tx | [`0x638213bf…52b4`](https://sepolia.etherscan.io/tx/0x638213bf6271e181980cbf3c45176a4940cf74e20e2c7f568f9d2f64681552b4) |
+| `verify settle.procure.ops.treasury.mandate-agents.eth` | `VERIFIED`, 3 hops usable | ENS → Arkiv → Sepolia |
+| `pnpm pay 0.5 supplierA` (demo mode) | paid, simulated | receipt `simulated: true` |
+| `pnpm pay 20 supplierA` | `STEP_UP_REQUIRED` | denied without approval |
+| `pnpm attack:amplify` | denied, balance unchanged | 999999500000 before and after |
+| `pnpm attack:replay` | first 200, second `REPLAY` | |
+| `pnpm attack:revoke` on a separate throwaway chain | `REVOKED` after a real revoke | [`0x14863039…bf35`](https://sepolia.etherscan.io/tx/0x1486303900c2e5ddbab31d8b3155a0ce5c55339cf07cabee1aa1a324f0eebf35) |
