@@ -46,7 +46,7 @@ export function ApprovalPanel({ run }: { run: Run }) {
     <div className="panel space-y-3 border-warn p-4">
       <div className="flex flex-wrap items-center gap-2">
         <Badge tone="warn">needs a human</Badge>
-        <span className="font-display text-lg">
+        <span className="font-display text-lg font-medium">
           {usdc(run.request.amount)} → {run.request.target} is inside the permit but above the approval limit.
         </span>
       </div>

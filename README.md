@@ -52,10 +52,10 @@ const { entities } = await client
 ```bash
 pnpm install
 cp .env.example .env     # fill SEPOLIA_RPC_URL, REGISTRY_ADDRESS and the demo keys
-pnpm demo                # payment service + fresh delegation chain + dashboard
+pnpm demo                # payment service + fresh published chain + dashboard
 ```
 
-Open http://localhost:3000 and use the buttons at the top: a valid payment, a large payment that needs approval, a rogue amplification, a replay, a real on-chain revoke of the root, and a reset. Payments are simulated; the checks and the Sepolia revocation read are real. See [docs/deploy.md](docs/deploy.md) for putting the dashboard on Vercel.
+Open http://localhost:3000 and use the buttons at the top: a valid payment, a large payment that needs approval, a rogue amplification, a replay, a real on-chain revoke of the root, and a reset. Payments are simulated; the checks and the Sepolia revocation read are real. Starting the demo and pressing reset each publish a new chain to Arkiv and ENS, so they also need `ARKIV_PK`, `ARKIV_ACCESS_KEY`, `ENS_RESOLVER` and a little Sepolia ETH in `OWNER_PK`. See [docs/deploy.md](docs/deploy.md) for putting the dashboard on Vercel.
 
 ## Run it
 
@@ -67,7 +67,8 @@ pnpm test                                   # all TypeScript tests
 cd packages/contracts && forge test         # registry tests
 pnpm service                                # payment service on :4000 (real USDC)
 pnpm service:demo                           # no-money demo: simulated payments + labelled World ID bypass
-pnpm seed && pnpm pay 0.5 supplierA         # valid execution
+pnpm fresh-chain                            # new chain, published to Arkiv and ENS
+pnpm seed && pnpm pay 0.5 supplierA         # valid execution, local chain only
 pnpm attack:amplify                         # denied, balance unchanged
 pnpm attack:replay                          # one debit, second send REPLAY
 pnpm attack:revoke                          # revoke the root, then REVOKED   (run last; `pnpm seed` resets)
@@ -88,7 +89,7 @@ pnpm --filter @mandate/dashboard dev        # dashboard (set NEXT_PUBLIC_SERVICE
 | `packages/agents` | operations, procurement (LLM), settlement and a rogue variant, each its own process |
 | `packages/arkiv` | Arkiv schema, publisher, and an Authority Explorer that re-verifies everything it reads |
 | `packages/cli` | ENS registration, text records, and `verify <ens-name>` |
-| `packages/dashboard` | chain view, decision timeline, attack controls |
+| `packages/dashboard` | story page, chain view, decision timeline, attack controls, and a live `/verify` page for any ENS name |
 | `arkiv/`, `docs/`, `fixtures/` | Arkiv track files, notes and measurements, sample invoices |
 
 ## Honest limits

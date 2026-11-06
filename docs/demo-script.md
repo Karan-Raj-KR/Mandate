@@ -1,22 +1,22 @@
-# Demo script (about 4 minutes)
+# Demo script (about 3:20, the upload limit is 4:00)
 
-Setup once: fill `.env`, `pnpm service` in one terminal, `pnpm --filter @mandate/agents start` in another, `pnpm --filter @mandate/dashboard dev` (live mode) in a third. Keep `pnpm seed` ready to reset. No USDC? Run `pnpm service:demo` instead of `pnpm service` (see "Demo mode" below).
+Setup once: fill `.env`, stop anything on ports 3000 and 4000, then run `pnpm demo`. It starts the service and dashboard and publishes a fresh chain to Arkiv and ENS. Wait for "Ready", then open http://localhost:3000. Record the screen with your own voice, at 720p or higher. No phone recording, AI voiceover or speeding up.
 
-**1. The problem (30s).** A payment service gets a request from an agent three hops from the human who owns the money. It has only the agent's claim. Four questions have no answer today: provenance, amplification, revocation, possession.
+**1. The problem (20s).** A payment service gets a request from an agent three hops from the human who owns the money. It has only the agent's claim. It can't tell where that authority came from, whether it grew along the way, or whether it was revoked.
 
-**2. Valid execution (40s).** `pnpm --filter @mandate/agents demo`. The chain is built across three separate processes, settlement pays, and the dashboard shows the three permits and the Etherscan link. Point at: the service verified the chain itself.
+**2. Valid execution (35s).** Press **Valid payment**. The dashboard shows the three permits and the receipt. Point at: the service verified the chain itself. Say that payments in this run are simulated; the checks are real.
 
-**3. A prompt-injected agent (60s).** Show `fixtures/invoices/malicious.txt` (the hidden notice). Then `ROGUE=1` procurement and `pnpm --filter @mandate/agents demo rogue`: the signature is genuine, the service rejects it with **actions, maxAmount and targets** named on edge 2, and the balance is unchanged. Say plainly that the OpenAI models we tried did not follow the injection, so the rogue agent stands in for a successful one; the point is that the boundary holds whatever the model decides.
+**3. A compromised agent (50s).** Show `fixtures/invoices/malicious.txt` (the hidden notice). Press **Rogue amplification**: the signature is genuine, the service rejects it with **actions, maxAmount and targets** named on the edge, and the balance is unchanged. Say plainly that the OpenAI models we tried did not follow the injection, so a scripted rogue agent stands in for a successful one; the point is that the boundary holds whatever the model decides.
 
-**4. Revocation (40s).** `pnpm attack:revoke`. One transaction, one bytes32, on Sepolia. The same request with a fresh nonce is now `REVOKED`, not replay. Nobody downstream was touched.
+**4. Discovery from a name (45s).** In a terminal, run `pnpm --filter @mandate/cli verify settle.procure.ops.treasury.mandate-agents.eth`. From the ENS name alone it reads the text records, fetches each delegation from Arkiv, re-verifies every hop and reads revocation from Ethereum. Then open the Registry page: authority read from Arkiv, all usable.
 
-**5. Discovery from a name (50s).** `pnpm --filter @mandate/cli verify settle.procure.ops.treasury.mandate-agents.eth`. From the ENS name alone it reads the text records, fetches each delegation, re-verifies every hop and reads revocation from Ethereum. Then the dashboard's Authority Explorer: only genuinely usable authority from Arkiv is shown as active; after step 4 the whole tree flips to denied.
+**5. Revocation (35s).** Press **Revoke the root**. One transaction, one bytes32, on Sepolia. Run the same request again: it is now `REVOKED`, not replay. Refresh the Registry page: the whole tree flips to denied, and nobody downstream was touched.
 
-**6. Why this is different (20s).** Capability attenuation is solved for onchain execution. It is not solved for what agents mostly do: call an API. Mandate is attenuated delegation for off-chain resource boundaries, with cross-organisation revocation and no operator to trust.
+**6. Why this is different (15s).** Capability attenuation is solved for onchain execution. It is not solved for what agents mostly do: call an API. Mandate is attenuated delegation for off-chain resource boundaries, with cross-organisation revocation and no operator to trust.
 
-Optional step-up beat (30s): start the service with `WORLD_DEMO_BYPASS=1`, run `pnpm pay 20 supplierA` (denied: needs a human), then press the dashboard's **Bypass World ID (demo only)** button. Say out loud that this is the demo bypass and not a World ID approval; the receipt is stamped `demo-bypass`.
+Order matters: revoke comes after `verify`, because it kills the published chain. **Press Reset the demo when you finish**, or judges will find a revoked chain. Reset publishes a new chain to Arkiv and ENS.
 
-Order caveat: run step 4 last, because it revokes the seeded root. `pnpm seed` makes a new one.
+Optional step-up beat, only if you have time left: press **Large payment** (denied: needs a human), then **Bypass World ID (demo only)**. Say out loud that this is the demo bypass and not a World ID approval; the receipt is stamped `demo-bypass`.
 
 ## Demo mode (no USDC needed)
 

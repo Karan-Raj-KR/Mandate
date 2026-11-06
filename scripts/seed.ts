@@ -10,6 +10,7 @@ import { getBalance } from "./lib/http.js";
 
 const USDC = (n: number): bigint => BigInt(n) * 1_000_000n;
 const now = Math.floor(Date.now() / 1000);
+const DAY = 24 * 3600;
 
 // Agent names hang off the ENS name we registered on Sepolia (ENS_ROOT_NAME in .env).
 const ENS_ROOT = process.env.ENS_ROOT_NAME ?? "mandate-agents.eth";
@@ -40,7 +41,7 @@ async function main(): Promise<void> {
     scope: {
       actions: ["invoice.read", "payment.transfer"],
       maxAmount: USDC(500),
-      expiry: now + 24 * 3600,
+      expiry: now + 10 * DAY,
       targets: ["*"],
     },
     nonce: freshNonce(),
@@ -57,7 +58,7 @@ async function main(): Promise<void> {
     scope: {
       actions: ["invoice.read", "payment.transfer"],
       maxAmount: USDC(100),
-      expiry: now + 2 * 3600,
+      expiry: now + 9 * DAY,
       targets: ["supplierA", "supplierB"],
     },
     nonce: freshNonce(),
@@ -74,7 +75,7 @@ async function main(): Promise<void> {
     scope: {
       actions: ["payment.transfer"],
       maxAmount: USDC(25),
-      expiry: now + 3600,
+      expiry: now + 8 * DAY,
       targets: ["supplierA"],
     },
     nonce: freshNonce(),

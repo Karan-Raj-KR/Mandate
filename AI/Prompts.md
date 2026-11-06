@@ -10,3 +10,7 @@ already-written scaffold and narrows work in two parts, push to main,
 create karan/mvp, and start Checkpoint 1 of PROMPT_KARAN.md. Full task
 checkpoints for both Karan and the teammate (Havinash) are recorded in
 AI/prompts/PROMPT_KARAN.md and AI/prompts/PROMPT_HAVINASH.md.
+
+## 2026-11-07 — Karan, Claude Code
+
+Research ETHGlobal Mumbai submission rules and check the project against them, then fix what can be fixed. This led to the longer-lived demo chain, the fresh-chain step, the read-only /verify route and page, and the corrected demo script.

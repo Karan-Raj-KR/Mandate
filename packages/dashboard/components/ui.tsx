@@ -13,7 +13,7 @@ export const time = (unix: number) => new Date(unix * 1000).toLocaleString("en-G
 export function Hash({ value }: { value: string }) {
   const toast = useToast();
   return (
-    <span className="whitespace-nowrap font-mono text-[0.8em]">
+    <span className="whitespace-nowrap font-mono text-[0.92em]">
       <span title={value}>{short(value)}</span>
       <button
         type="button"
@@ -27,26 +27,12 @@ export function Hash({ value }: { value: string }) {
   );
 }
 
-const TONE = { ok: "text-lime", bad: "text-bad", warn: "text-warn", info: "text-muted" };
+const TONE = { ok: "text-ok", bad: "text-bad", warn: "text-warn", info: "text-muted" };
 export type Tone = keyof typeof TONE;
 
 /** Small status label: colour AND text, never colour alone. */
 export function Badge({ tone, children }: { tone: Tone; children: ReactNode }) {
-  return <span className={`inline-block rounded-full border border-current/60 px-2 py-0.5 font-mono text-[0.65rem] font-medium uppercase tracking-wider ${TONE[tone]}`}>{children}</span>;
-}
-
-/** Rubber stamp. `thunk` animates it landing. */
-export function Stamp({ tone, children, big, thunk = true }: { tone: "ok" | "bad" | "warn"; children: ReactNode; big?: boolean; thunk?: boolean }) {
-  return <span role="status" className={`stamp whitespace-nowrap ${thunk ? "stamp-thunk" : ""} ${TONE[tone]} ${big ? "text-4xl md:text-5xl" : "text-sm"}`}>{children}</span>;
-}
-
-/** Monogram badge for a person/agent: "procure.ops.treasury.dhruv.eth" → "PR". */
-export function Monogram({ name, dark }: { name: string; dark?: boolean }) {
-  return (
-    <span aria-hidden className={`grid size-9 shrink-0 place-items-center rounded-full border border-fg font-display text-sm font-semibold ${dark ? "bg-fg text-panel" : "bg-panel"}`}>
-      {name.slice(0, 2).toUpperCase()}
-    </span>
-  );
+  return <span className={`inline-flex items-baseline gap-1.5 text-xs font-medium ${TONE[tone]}`}><span aria-hidden className="size-1.5 shrink-0 translate-y-[-1px] bg-current" />{children}</span>;
 }
 
 export function PresenterToggle() {
@@ -75,9 +61,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastCtx.Provider value={push}>
       {children}
-      <div className="fixed bottom-4 right-4 z-50 flex max-w-sm flex-col gap-2" role="status" aria-live="polite">
+      <div className="fixed bottom-[calc(var(--frame)+1rem)] right-[calc(var(--frame)+1rem)] z-[70] flex max-w-sm flex-col gap-2" role="status" aria-live="polite">
         {toasts.map((t) => (
-          <div key={t.id} className="panel enter flex items-center gap-2 px-3 py-2 font-mono text-xs shadow-2xl"><span aria-hidden className={`size-2 rounded-full bg-current ${TONE[t.tone]}`} /><span className={TONE[t.tone]}>{t.text}</span></div>
+          <div key={t.id} className="panel enter flex items-center gap-2 px-4 py-3 text-sm shadow-2xl"><span aria-hidden className={`size-2 bg-current ${TONE[t.tone]}`} /><span className={TONE[t.tone]}>{t.text}</span></div>
         ))}
       </div>
     </ToastCtx.Provider>
@@ -97,10 +83,10 @@ export function Modal({ open, title, onClose, children }: { open: boolean; title
       ref={ref}
       onClose={onClose}
       onClick={(e) => e.target === ref.current && onClose()}
-      className="permit m-auto w-[min(92vw,30rem)] p-0 text-fg backdrop:bg-fg/40"
+      className="paper m-auto w-[min(92vw,30rem)] p-0 backdrop:bg-black/70"
     >
       <div className="p-6">
-        <h2 className="mb-3 font-display text-2xl">{title}</h2>
+        <h2 className="m-serif mb-3 text-3xl">{title}</h2>
         {children}
       </div>
     </dialog>
@@ -108,6 +94,6 @@ export function Modal({ open, title, onClose, children }: { open: boolean; title
 }
 
 export function Button({ tone = "plain", ...p }: React.ButtonHTMLAttributes<HTMLButtonElement> & { tone?: "plain" | "ink" | "bad" }) {
-  const c = { plain: "border-line bg-panel hover:border-muted", ink: "border-lime bg-lime text-bg font-semibold hover:bg-lime/85", bad: "border-bad bg-bad text-bg" }[tone];
-  return <button type="button" {...p} className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-40 ${c} ${p.className ?? ""}`} />;
+  const c = { plain: "border-transparent bg-white/8 hover:bg-white/16", ink: "border-fg bg-fg text-[#0b0909] hover:bg-[#0b0909] hover:text-fg", bad: "border-bad bg-bad text-bg" }[tone];
+  return <button type="button" {...p} className={`min-h-11 border px-4 py-2 text-sm font-medium transition-[background,border-color,color,transform] duration-300 active:scale-[0.97] disabled:opacity-40 ${c} ${p.className ?? ""}`} />;
 }

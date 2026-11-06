@@ -16,6 +16,11 @@ export function arkivPublicClient() {
   return createPublicClient({ chain: chain(), transport: http() });
 }
 
+/** Rate-limited public endpoint for hosted read-only pages. Reads are re-verified locally, so a limit can only deny. */
+export function arkivOpenReadClient() {
+  return createPublicClient({ chain: rabdi({ accessKey: process.env.ARKIV_ACCESS_KEY ?? "" }), transport: http() });
+}
+
 export function arkivWriterAccount() {
   const pk = process.env.ARKIV_PK;
   if (!pk) throw new Error("missing required env var: ARKIV_PK");

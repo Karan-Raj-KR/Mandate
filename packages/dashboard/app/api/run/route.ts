@@ -17,7 +17,7 @@ const ACTIONS: Record<string, { label: string; file: string; args: string[] }> =
   amplify: { label: "Rogue amplification", file: "scripts/attacks/amplify.ts", args: [] },
   replay: { label: "Replay", file: "scripts/attacks/replay.ts", args: [] },
   revoke: { label: "Revoke the root (on-chain)", file: "scripts/attacks/revoke-root.ts", args: [] },
-  reset: { label: "Reset the demo", file: "scripts/seed.ts", args: [] },
+  reset: { label: "Reset the demo", file: "scripts/fresh-chain.ts", args: [] },
 };
 
 // Next sets PORT for itself, and the scripts read PORT to find the payment service. Point them at the service instead.
