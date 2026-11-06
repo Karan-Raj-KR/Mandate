@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+/* "Circuit breaker": graphite, one lime accent for flowing authority, red only for trips/denials */
+@theme {
+  --color-bg: #0b0d10;
+  --color-panel: #12151a;
+  --color-line: #232831;
+  --color-fg: #e6e8eb;
+  --color-muted: #8a93a0;
+  --color-lime: #c6ff3d;
+  --color-bad: #ff4d4d;
+  --color-warn: #f5b83d; /* pending only */
+  --font-display: var(--font-bricolage), sans-serif;
+  --font-sans: var(--font-geist), sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+}
+
+html.presenter { font-size: 125%; }
+body { background: var(--color-bg); color: var(--color-fg); }
+
+.panel, .permit { background: var(--color-panel); border: 1px solid var(--color-line); border-radius: 10px; }
+
+/* status label (replaced by the breaker result in a later step) */
+.stamp { display: inline-block; padding: .3em .6em; border: 1px solid currentColor; border-radius: 6px; font-family: var(--font-mono); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; line-height: 1; }
+
+/* ledger rows */
+.ruled { background-image: repeating-linear-gradient(to bottom, transparent 0 2.4rem, var(--color-line) 2.4rem calc(2.4rem + 1px)); }
+
+/* injected text: red underline */
+.injected { text-decoration: underline wavy var(--color-bad); text-underline-offset: 3px; }
+
+.enter { animation: enter 380ms ease-out both; }
+@keyframes enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.draw-down { transform-origin: top; animation: draw 700ms ease-in both; }
+@keyframes draw { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.spill { transform-origin: left; animation: spill 600ms 250ms ease-out both; }
+@keyframes spill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* current pulse travelling down a wire, once */
+.pulse { position: absolute; left: 50%; width: 10px; height: 26px; margin-left: -5px; border-radius: 9999px; background: var(--color-lime); box-shadow: 0 0 14px var(--color-lime); opacity: 0; animation: travel 650ms ease-in both; }
+@keyframes travel { 0% { top: 0; opacity: 0; } 15% { opacity: 1; } 100% { top: calc(100% - 26px); opacity: 0; } }
+
+/* breaker trip: spark flickers, the far side of the wire drops out */
+.spark { animation: spark 420ms steps(2) 3 both; }
+@keyframes spark { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: .2; } }
+.snap { animation: snap 500ms 300ms ease-out both; }
+@keyframes snap { from { transform: translateX(-14px); opacity: 1; stroke: var(--color-lime); } to { transform: none; opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
