@@ -1,0 +1,29 @@
+{
+  "name": "mandate",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@11.20.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "service": "pnpm --filter @mandate/payment-service start",
+    "seed": "tsx scripts/seed.ts",
+    "pay": "tsx scripts/pay.ts",
+    "attack:amplify": "tsx scripts/attacks/amplify.ts",
+    "attack:revoke": "tsx scripts/attacks/revoke-root.ts",
+    "attack:replay": "tsx scripts/attacks/replay.ts"
+  },
+  "dependencies": {
+    "@mandate/core": "workspace:*",
+    "dotenv": "^16.4.7",
+    "viem": "^2.21.54"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
