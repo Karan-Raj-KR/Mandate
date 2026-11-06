@@ -23,3 +23,16 @@ Writer wallet `0xD58Db2d84b2B0BDaE9e681A0d4Ff8b7b4A06d636` on Arkiv's Rabdi test
 | Authority Explorer (Arkiv query → local checks → Sepolia revocation) | 3 of 3 delegations `USABLE`; the first query after publishing already found them | `pnpm --filter @mandate/arkiv explore <root>` |
 | `verify settle.procure.ops.treasury.mandate-agents.eth` (ENS → Arkiv → verify) | `VERIFIED 3-hop chain … is usable now` | `pnpm --filter @mandate/cli verify <name>` |
 | Owner revokes the root | One transaction. Explorer, CLI and the dashboard's `/api/explore` all show all 3 hops `DENIED: hop 0: revoked on Ethereum`. Nothing downstream was touched. | revoke tx [`0xa3df40d6…1aeb`](https://sepolia.etherscan.io/tx/0xa3df40d657e3f66980c7c1a9c9e3586716aaa3b88ee51ceed651f70eb1351aeb) |
+
+# Demo-mode run (2026-11-06, no USDC)
+
+Service started with `pnpm service:demo` (simulated payments, labelled World ID bypass) against the same Sepolia registry. Checks and the revocation read are real; only the transfer is simulated.
+
+| Step | Result |
+|---|---|
+| Registry `0x6813Aa2574392530b7f1b3C5ed0683d30133FE98` | bytecode on Sepolia, verified on Etherscan |
+| `pnpm pay 0.5 supplierA` | 200, `simulated: true` |
+| `pnpm attack:amplify` | 403, simulated balance unchanged |
+| `pnpm attack:replay` | first 200, second 403 `REPLAY` |
+| `pnpm attack:revoke` | real on-chain revoke [`0x5143…fb36`](https://sepolia.etherscan.io/tx/0x514300cb397f2d5d55c9c41b54d84524e9096e42b0a6b4fafe58cc3a8dfafb36), then 403 `REVOKED` |
+| Reset | re-seeded, republished to Arkiv and ENS; `verify settle.procure.ops.treasury.mandate-agents.eth` returns VERIFIED (root `0x7989…f7bf`) |
