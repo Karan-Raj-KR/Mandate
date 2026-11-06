@@ -14,19 +14,19 @@ Two people build in parallel, each with their own agent, on their own branch. **
 | Owner | Branch | Files |
 |---|---|---|
 | **Karan** | `karan/mvp` | root `package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml`, `tsconfig.base.json`, `.env.example` · `packages/core/package.json`, `tsconfig.json` · `packages/core/src/{types,config,schema,narrow,index}.ts` · `packages/core/test/{narrow,narrow.property,schema}.test.ts` · `packages/payment-service/**` · `scripts/**` |
-| **Dhruv** | `dhruv/mvp` | `packages/contracts/**` · `packages/core/src/{canonical,sign,verify,registry}.ts` · `packages/core/test/{canonical,verify,attacks}.test.ts` |
+| **Havinash** | `havinash/mvp` | `packages/contracts/**` · `packages/core/src/{canonical,sign,verify,registry}.ts` · `packages/core/test/{canonical,verify,attacks}.test.ts` |
 | Shared (append-only) | either | `AI/AI_USAGE.md` (add rows, never edit others' rows) · `README.md` deployments table |
 
 - `packages/core/src/types.ts` is **frozen** once pushed to `main`. Changing it needs both humans to agree.
-- Only Karan installs npm dependencies. Dhruv's agent never edits `package.json` or the lockfile — ask Karan.
-- Dhruv's contract work uses Foundry only (`forge init --no-git`, `forge install --no-git`). No git submodules.
+- Only Karan installs npm dependencies. Havinash's agent never edits `package.json` or the lockfile — ask Karan.
+- Havinash's contract work uses Foundry only (`forge init --no-git`, `forge install --no-git`). No git submodules.
 
 ## Branches and merging
 
 - `main` holds only merged, working code.
 - Karan pushes the scaffold + `types.ts` + `config.ts` **directly to `main` first**, then both work on their branches.
-- Dhruv pulls that into his branch with `git merge origin/main`.
-- Merge order at integration time (~18:30): **Dhruv's PR → `main` first**, then Karan merges `main` into `karan/mvp`, wires the verifier into the payment service, and opens his PR.
+- Havinash pulls that into his branch with `git merge origin/main`.
+- Merge order at integration time (~18:30): **Havinash's PR → `main` first**, then Karan merges `main` into `karan/mvp`, wires the verifier into the payment service, and opens his PR.
 - Never push directly to the other person's branch.
 
 ## Commits
