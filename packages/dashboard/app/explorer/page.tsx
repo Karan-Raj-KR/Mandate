@@ -4,7 +4,7 @@ import { ACTIONS } from "@mandate/core";
 import { Button, Hash, Stamp, time, usdc } from "@/components/ui";
 import { exploreAuthority, MOCK, type AuthorityRow } from "@/lib/api";
 
-const input = "border border-ink bg-sheet px-2 py-1 text-sm";
+const input = "border border-fg bg-panel px-2 py-1 text-sm";
 
 /** USABLE only when every check passed; otherwise name why. Unreadable state is DENIED, never "unknown". */
 function stampOf(r: AuthorityRow): { label: string; tone: "ok" | "bad" } {
@@ -41,7 +41,7 @@ export default function Registry() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-serif text-4xl">The registry of permits</h1>
+        <h1 className="font-display text-4xl">The registry of permits</h1>
         <p className="mt-1 max-w-3xl text-muted">Which permits under an owner can still be used right now? Each one is looked up, its signature and chain checked, and its revocation read from Ethereum. Only permits that pass everything are stamped usable.</p>
       </div>
 
@@ -51,7 +51,7 @@ export default function Registry() {
       </form>
 
       {error && (
-        <div className="sheet flex flex-wrap items-center gap-4 p-4">
+        <div className="panel flex flex-wrap items-center gap-4 p-4">
           <Stamp tone="bad">Denied · read failed</Stamp>
           <p className="text-sm">{error}. Nothing under this owner is shown as usable.</p>
         </div>
@@ -59,7 +59,7 @@ export default function Registry() {
 
       {rows && (
         <>
-          <fieldset className="grid gap-3 border-y border-ink py-3 text-xs sm:grid-cols-3 lg:grid-cols-6">
+          <fieldset className="grid gap-3 border-y border-fg py-3 text-xs sm:grid-cols-3 lg:grid-cols-6">
             <legend className="sr-only">Filters</legend>
             <label className="flex flex-col gap-1">Issued by<input className={input} value={f.issuer} onChange={(e) => setF({ ...f, issuer: e.target.value })} /></label>
             <label className="flex flex-col gap-1">Held by<input className={input} value={f.subject} onChange={(e) => setF({ ...f, subject: e.target.value })} /></label>
@@ -78,10 +78,10 @@ export default function Registry() {
             <label className="flex flex-col gap-1">Expires before (unix s)<input className={`${input} font-mono`} inputMode="numeric" value={f.to} onChange={(e) => setF({ ...f, to: e.target.value })} /></label>
           </fieldset>
 
-          <div className="sheet overflow-x-auto">
+          <div className="panel overflow-x-auto">
             <table className="ruled w-full min-w-[60rem] border-collapse text-left text-xs [&_td]:h-[2.4rem] [&_td]:px-3 [&_td]:align-middle [&_th]:px-3">
               <thead className="font-mono text-[0.65rem] uppercase tracking-wider text-muted">
-                <tr className="h-[2.4rem] border-b-2 border-double border-ink">
+                <tr className="h-[2.4rem] border-b-2 border-double border-fg">
                   <th>Status</th><th>Permit No.</th><th>Issued by → held by</th><th>Level</th><th>Actions</th><th>Max per request</th><th>Pay to</th><th>Expires</th><th>Notes</th>
                 </tr>
               </thead>

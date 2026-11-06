@@ -130,10 +130,10 @@ export default function Stage() {
         {SCENARIOS.map((s) => (
           <button
             key={s.k} type="button" disabled={!MOCK} onClick={() => start(s.k)}
-            className={`permit min-w-52 flex-1 px-4 py-2 text-left transition-colors disabled:opacity-50 ${pick === s.k ? "!bg-ink text-sheet" : "hover:bg-sheet"}`}
+            className={`permit min-w-52 flex-1 px-4 py-2 text-left transition-colors disabled:opacity-50 ${pick === s.k ? "!bg-fg text-panel" : "hover:bg-panel"}`}
             aria-pressed={pick === s.k}
           >
-            <span className="font-mono text-xs opacity-70">{s.k}</span> <span className="font-serif text-lg">{s.title}</span>
+            <span className="font-mono text-xs opacity-70">{s.k}</span> <span className="font-display text-lg">{s.title}</span>
             <span className="block text-xs opacity-80">{s.line}</span>
           </button>
         ))}
@@ -143,10 +143,10 @@ export default function Stage() {
         </div>
       </div>
 
-      {liveError && <p className="sheet border-bad p-2 text-sm text-bad">Can&apos;t read the payment service ({liveError}). Nothing is shown as paid until it answers.</p>}
+      {liveError && <p className="panel border-bad p-2 text-sm text-bad">Can&apos;t read the payment service ({liveError}). Nothing is shown as paid until it answers.</p>}
       {!MOCK && <p className="text-sm text-muted">Live: start agents from a terminal (<span className="font-mono">pnpm pay 10 supplierA · pnpm attack:amplify · pnpm attack:revoke</span>); each decision plays here.</p>}
 
-      <p className="min-h-[2.5em] font-serif text-2xl leading-snug md:text-3xl" aria-live="polite">{caption}</p>
+      <p className="min-h-[2.5em] font-display text-2xl leading-snug md:text-3xl" aria-live="polite">{caption}</p>
 
       {run && (
         <div className="grid items-start gap-6 md:grid-cols-2 2xl:grid-cols-[1fr_1.3fr_0.85fr_1.05fr_0.95fr]">
@@ -173,12 +173,12 @@ export default function Stage() {
 
       <div className="grid gap-6 md:grid-cols-[1fr_auto]">
         <div>
-          <h2 className="mb-2 font-serif text-xl">Request log</h2>
+          <h2 className="mb-2 font-display text-xl">Request log</h2>
           <Timeline runs={runs} selected={run?.id} onSelect={(r) => { setRun(r); setBeat(99); setPlaying(false); }} />
         </div>
         {MOCK && (
           <div className="space-y-2 text-sm">
-            <h2 className="font-serif text-xl">Also try</h2>
+            <h2 className="font-display text-xl">Also try</h2>
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => start("replay")}>Replay the last payment</Button>
               <Button onClick={() => setWorldOpen(true)}>Pay 20.00 USDC (needs a human)</Button>

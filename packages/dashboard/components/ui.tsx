@@ -17,7 +17,7 @@ export function Hash({ value }: { value: string }) {
       <span title={value}>{short(value)}</span>
       <button
         type="button"
-        className="ml-1 text-muted underline decoration-dotted hover:text-ink"
+        className="ml-1 text-muted underline decoration-dotted hover:text-fg"
         onClick={() => navigator.clipboard.writeText(value).then(() => toast("Copied", "info"))}
         aria-label={`copy ${value}`}
       >
@@ -27,7 +27,7 @@ export function Hash({ value }: { value: string }) {
   );
 }
 
-const TONE = { ok: "text-ok", bad: "text-bad", warn: "text-warn", info: "text-muted" };
+const TONE = { ok: "text-lime", bad: "text-bad", warn: "text-warn", info: "text-muted" };
 export type Tone = keyof typeof TONE;
 
 /** Small status label: colour AND text, never colour alone. */
@@ -43,7 +43,7 @@ export function Stamp({ tone, children, big, thunk = true }: { tone: "ok" | "bad
 /** Monogram badge for a person/agent: "procure.ops.treasury.dhruv.eth" → "PR". */
 export function Monogram({ name, dark }: { name: string; dark?: boolean }) {
   return (
-    <span aria-hidden className={`grid size-9 shrink-0 place-items-center rounded-full border border-ink font-serif text-sm font-semibold ${dark ? "bg-ink text-sheet" : "bg-sheet"}`}>
+    <span aria-hidden className={`grid size-9 shrink-0 place-items-center rounded-full border border-fg font-display text-sm font-semibold ${dark ? "bg-fg text-panel" : "bg-panel"}`}>
       {name.slice(0, 2).toUpperCase()}
     </span>
   );
@@ -54,7 +54,7 @@ export function PresenterToggle() {
   useEffect(() => { document.documentElement.classList.toggle("presenter", on); }, [on]);
   return (
     <label className="flex cursor-pointer items-center gap-1.5 text-sm">
-      <input type="checkbox" checked={on} onChange={(e) => setOn(e.target.checked)} className="accent-ink" />
+      <input type="checkbox" checked={on} onChange={(e) => setOn(e.target.checked)} className="accent-fg" />
       Presenter mode
     </label>
   );
@@ -77,7 +77,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="fixed bottom-4 right-4 z-50 flex max-w-sm flex-col gap-2" role="status" aria-live="polite">
         {toasts.map((t) => (
-          <div key={t.id} className={`sheet enter border-l-4 border-l-current px-3 py-2 font-mono text-xs ${TONE[t.tone]}`}>{t.text}</div>
+          <div key={t.id} className={`panel enter border-l-4 border-l-current px-3 py-2 font-mono text-xs ${TONE[t.tone]}`}>{t.text}</div>
         ))}
       </div>
     </ToastCtx.Provider>
@@ -97,10 +97,10 @@ export function Modal({ open, title, onClose, children }: { open: boolean; title
       ref={ref}
       onClose={onClose}
       onClick={(e) => e.target === ref.current && onClose()}
-      className="permit m-auto w-[min(92vw,30rem)] p-0 text-ink backdrop:bg-ink/40"
+      className="permit m-auto w-[min(92vw,30rem)] p-0 text-fg backdrop:bg-fg/40"
     >
       <div className="p-6">
-        <h2 className="mb-3 font-serif text-2xl">{title}</h2>
+        <h2 className="mb-3 font-display text-2xl">{title}</h2>
         {children}
       </div>
     </dialog>
@@ -108,6 +108,6 @@ export function Modal({ open, title, onClose, children }: { open: boolean; title
 }
 
 export function Button({ tone = "plain", ...p }: React.ButtonHTMLAttributes<HTMLButtonElement> & { tone?: "plain" | "ink" | "bad" }) {
-  const c = { plain: "border-ink bg-sheet hover:bg-ink hover:text-sheet", ink: "border-ink bg-ink text-sheet hover:bg-transparent hover:text-ink", bad: "border-bad bg-bad text-sheet" }[tone];
+  const c = { plain: "border-fg bg-panel hover:bg-fg hover:text-panel", ink: "border-fg bg-fg text-panel hover:bg-transparent hover:text-fg", bad: "border-bad bg-bad text-panel" }[tone];
   return <button type="button" {...p} className={`border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-40 ${c} ${p.className ?? ""}`} />;
 }

@@ -11,7 +11,7 @@ const role = (ens: string) => ROLE[ens.split(".")[0]] ?? "Agent";
 export function StageColumn({ n, title, children }: { n: number; title: string; children: ReactNode }) {
   return (
     <section className="min-w-0 space-y-3">
-      <h2 className="flex items-baseline gap-2 border-b border-ink pb-1 font-serif text-xl">
+      <h2 className="flex items-baseline gap-2 border-b border-fg pb-1 font-display text-xl">
         <span className="font-mono text-xs text-muted">{n}</span>{title}
       </h2>
       {children}
@@ -22,7 +22,7 @@ export function StageColumn({ n, title, children }: { n: number; title: string; 
 /** Plain text only: React escapes it, never dangerouslySetInnerHTML. */
 export function PlainText({ label, text }: { label: string; text: string }) {
   return (
-    <section className="sheet">
+    <section className="panel">
       <h3 className="border-b border-line px-3 py-1.5 font-mono text-[0.7rem] font-bold uppercase tracking-wider text-muted">{label}</h3>
       <pre className="overflow-x-auto whitespace-pre-wrap break-words p-3 font-mono text-xs leading-relaxed">{text}</pre>
     </section>
@@ -45,7 +45,7 @@ export function InvoiceSheet({ text }: { text: string }) {
   const lines = injectedLines(text);
   const poisoned = lines.some((l) => l.flagged);
   return (
-    <div className="sheet slide-in relative p-4 shadow-[3px_3px_0_#1b1a1712]">
+    <div className="panel slide-in relative p-4 shadow-[3px_3px_0_#1b1a1712]">
       <p className="mb-2 flex justify-between font-mono text-[0.7rem] uppercase tracking-wider text-muted">
         <span>Supplier invoice</span>
         {poisoned && <span className="font-bold text-bad">Hidden instruction</span>}
@@ -53,7 +53,7 @@ export function InvoiceSheet({ text }: { text: string }) {
       <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-relaxed">
         {lines.map(({ line, flagged }, i) => (
           <span key={i} className="block">
-            <span className={flagged ? "scribble text-bad" : ""}>{line || " "}</span>
+            <span className={flagged ? "injected text-bad" : ""}>{line || " "}</span>
           </span>
         ))}
       </pre>
@@ -93,7 +93,7 @@ export function PermitChain({ run, showRevoked }: { run: Run; showRevoked: boole
       <div className="enter flex w-full items-center gap-3">
         <Monogram name={root.issuerName} dark />
         <div className="min-w-0">
-          <p className="font-serif text-base">{role(root.issuerName)}</p>
+          <p className="font-display text-base">{role(root.issuerName)}</p>
           <p className="truncate font-mono text-xs">{root.issuerName}</p>
         </div>
         <span className="ml-auto"><Badge tone={run.mock ? "warn" : "ok"}>World-verified{run.mock ? " · mock" : ""}</Badge></span>
@@ -122,7 +122,7 @@ export function PermitChain({ run, showRevoked }: { run: Run; showRevoked: boole
                 <span className="text-muted">→</span>
                 <Monogram name={d.subjectName} dark />
                 <div className="min-w-0">
-                  <p className="font-serif text-sm leading-tight">{role(d.subjectName)}</p>
+                  <p className="font-display text-sm leading-tight">{role(d.subjectName)}</p>
                   <p className="truncate font-mono text-[0.7rem] text-muted" title={d.subjectName}>{d.subjectName}</p>
                 </div>
               </div>
@@ -131,7 +131,7 @@ export function PermitChain({ run, showRevoked }: { run: Run; showRevoked: boole
               <Field k="Expires" bad={bad.has("expiry")}>{time(d.scope.expiry)}</Field>
               <Field k="Pay to" bad={bad.has("targets")}>{d.scope.targets.join(", ") === "*" ? "anyone (*)" : d.scope.targets.join(", ")}</Field>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className={`grid size-7 place-items-center rounded-full border-2 font-mono text-[0.5rem] font-bold ${run.mock ? "border-dashed border-warn text-warn" : "border-ok text-ok"}`} aria-hidden>SEAL</span>
+                <span className={`grid size-7 place-items-center rounded-full border-2 font-mono text-[0.5rem] font-bold ${run.mock ? "border-dashed border-warn text-warn" : "border-lime text-lime"}`} aria-hidden>SEAL</span>
                 <span className="text-[0.7rem]">{run.mock ? "Signature not verified (mock fixture)" : "Signature verified"}</span>
                 {voided && <Badge tone="bad">Void · parent revoked</Badge>}
               </div>
@@ -167,10 +167,10 @@ function Violations({ edge, parent, child, failures }: { edge: number; parent: s
 export function RequestCard({ run }: { run: Run }) {
   const r = run.request;
   return (
-    <div className="sheet enter p-4 text-sm">
+    <div className="panel enter p-4 text-sm">
       <p className="mb-1 font-mono text-[0.7rem] uppercase tracking-wider text-muted">Payment request · signed by</p>
       <p className="mb-3 truncate font-mono text-xs">{run.chain[run.chain.length - 1].subjectName}</p>
-      <p className="font-serif text-lg leading-snug">Pay <span className="font-mono font-semibold">{usdc(r.amount)}</span> to <span className="font-mono font-semibold">{r.target}</span></p>
+      <p className="font-display text-lg leading-snug">Pay <span className="font-mono font-semibold">{usdc(r.amount)}</span> to <span className="font-mono font-semibold">{r.target}</span></p>
       <div className="mt-3 space-y-0.5 text-xs">
         <Field k="Action">{r.action}</Field>
         <Field k="For service">{r.audience}</Field>
@@ -210,14 +210,14 @@ export function checkStatuses(v: Verdict, mock: boolean): CheckStatus[] {
 }
 
 const MARK: Record<CheckStatus, [string, string]> = {
-  pass: ["✓", "text-ok"], fail: ["✗", "text-bad"], "not reached": ["–", "text-muted"], "skipped (mock)": ["?", "text-warn"],
+  pass: ["✓", "text-lime"], fail: ["✗", "text-bad"], "not reached": ["–", "text-muted"], "skipped (mock)": ["?", "text-warn"],
 };
 
 export function Gatekeeper({ run }: { run: Run }) {
   const v = run.verdict;
   const st = checkStatuses(v, run.mock);
   return (
-    <div className="sheet p-4">
+    <div className="panel p-4">
       <p className="mb-2 font-mono text-[0.7rem] uppercase tracking-wider text-muted">Payment service · POST /execute{run.mock ? " · simulated (mock)" : ""}</p>
       <ol className="space-y-2">
         {CHECKS.map((c, i) => {
@@ -257,19 +257,19 @@ export function moneyShot(run: Run): { asked: bigint; allowed: bigint } | null {
 export function MoneyShot({ asked, allowed }: { asked: bigint; allowed: bigint }) {
   const boxPct = Number((allowed * 10000n) / asked) / 100;
   return (
-    <div className="sheet enter p-5 md:p-8">
+    <div className="panel enter p-5 md:p-8">
       <div className="grid gap-6 md:grid-cols-2">
         <div>
           <p className="font-mono text-xs uppercase tracking-widest text-bad">Asked</p>
           <p className="font-mono text-4xl font-bold text-bad md:text-6xl">{usdc(asked)}</p>
         </div>
         <div>
-          <p className="font-mono text-xs uppercase tracking-widest text-ok">Allowed</p>
-          <p className="font-mono text-4xl font-bold text-ok md:text-6xl">{usdc(allowed)}</p>
+          <p className="font-mono text-xs uppercase tracking-widest text-lime">Allowed</p>
+          <p className="font-mono text-4xl font-bold text-lime md:text-6xl">{usdc(allowed)}</p>
         </div>
       </div>
       <div className="relative mt-6 h-10" role="img" aria-label={`${usdc(allowed)} allowed, ${usdc(asked - allowed)} over the limit`}>
-        <div className="absolute inset-y-0 left-0 z-10 border-2 border-ink bg-ok/80" style={{ width: `${boxPct}%` }} />
+        <div className="absolute inset-y-0 left-0 z-10 border-2 border-fg bg-lime/80" style={{ width: `${boxPct}%` }} />
         <div className="spill absolute inset-y-1 right-0 bg-bad/85" style={{ left: `${boxPct}%` }} />
         <span className="absolute -bottom-6 font-mono text-xs text-bad" style={{ left: `${boxPct}%` }}>+{usdc(asked - allowed)} over the limit</span>
       </div>
@@ -282,9 +282,9 @@ export function Verdict({ run }: { run: Run }) {
   const v = run.verdict;
   const r = run.request;
   return (
-    <div className="sheet relative min-h-56 p-4 text-sm">
+    <div className="panel relative min-h-56 p-4 text-sm">
       <p className="font-mono text-[0.7rem] uppercase tracking-wider text-muted">Decision</p>
-      <p className="mt-1 font-serif text-lg">Pay {usdc(r.amount)} to {r.target}</p>
+      <p className="mt-1 font-display text-lg">Pay {usdc(r.amount)} to {r.target}</p>
       <div className="my-5 text-center">
         <Stamp tone={v.ok ? "ok" : "bad"} big>{v.ok ? "Paid" : "Denied"}</Stamp>
       </div>
@@ -294,7 +294,7 @@ export function Verdict({ run }: { run: Run }) {
           : <p className="text-xs">Receipt <Hash value={run.txHash} /> · <a className="underline" href={`${ETHERSCAN}/tx/${run.txHash}`} target="_blank" rel="noreferrer">View on Sepolia Etherscan</a></p>)
       ) : (
         <>
-          <p className="font-serif text-lg">Balance unchanged. No money moved.</p>
+          <p className="font-display text-lg">Balance unchanged. No money moved.</p>
           <p className="mt-1 font-mono text-[0.7rem] text-bad">{v.code}: {v.detail}</p>
         </>
       )}
@@ -311,7 +311,7 @@ export function Verdict({ run }: { run: Run }) {
 export function Timeline({ runs, selected, onSelect }: { runs: Run[]; selected?: string; onSelect: (r: Run) => void }) {
   if (!runs.length) return null;
   return (
-    <ol className="ruled sheet max-h-64 overflow-y-auto px-3 text-xs">
+    <ol className="ruled panel max-h-64 overflow-y-auto px-3 text-xs">
       {runs.map((r) => (
         <li key={r.id} className="flex h-[2.4rem] items-center">
           <button type="button" onClick={() => onSelect(r)} className={`flex w-full items-center gap-3 text-left ${r.id === selected ? "font-semibold" : ""}`}>
