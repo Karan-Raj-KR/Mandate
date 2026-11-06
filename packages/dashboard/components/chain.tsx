@@ -85,11 +85,11 @@ function Field({ k, bad, children }: { k: string; bad?: boolean; children: React
 }
 
 /** One vertical wire segment. Authority is current: thinner = less authority. */
-function Wire({ px, state, pulseAt }: { px: number; state: "live" | "grew" | "dead"; pulseAt?: number }) {
+function Wire({ px, state, pulseAt, darkAt = 0 }: { px: number; state: "live" | "grew" | "dead"; pulseAt?: number; darkAt?: number }) {
   const color = { live: "bg-lime", grew: "bg-bad", dead: "bg-line" }[state];
   return (
     <>
-      <span aria-hidden className={`absolute left-1/2 top-0 bottom-0 -translate-x-1/2 rounded-full transition-colors duration-700 ${color}`} style={{ width: px }} />
+      <span aria-hidden className={`absolute left-1/2 top-0 bottom-0 -translate-x-1/2 rounded-full transition-colors duration-700 ${color}`} style={{ width: px, transitionDelay: `${darkAt}ms` }} />
       {pulseAt !== undefined && state === "live" && <span aria-hidden className="pulse" style={delay(pulseAt)} />}
     </>
   );
@@ -130,7 +130,7 @@ export function PermitChain({ run, showRevoked }: { run: Run; showRevoked: boole
         return (
           <div key={d.id} className="enter grid grid-cols-[3rem_1fr] gap-4" style={delay(i * 650)}>
             <div className="relative flex flex-col items-center">
-              <Wire px={px} state={state} pulseAt={i * 650} />
+              <Wire px={px} state={state} pulseAt={i * 650} darkAt={dead ? (i - firstRevoked) * 450 : 0} />
               <span className="h-6" />
               <Node label={d.subjectName.slice(0, 2).toUpperCase()} state={state} />
             </div>
@@ -297,8 +297,8 @@ function SnappedWire() {
   return (
     <svg aria-hidden viewBox="0 0 220 40" className="h-10 w-full">
       <line x1="0" y1="20" x2="92" y2="20" stroke="var(--color-lime)" strokeWidth="4" strokeLinecap="round" />
-      <path d="M100 8 L108 20 L102 22 L112 34" fill="none" stroke="var(--color-bad)" strokeWidth="2" strokeLinejoin="round" />
-      <line x1="128" y1="20" x2="220" y2="20" stroke="var(--color-line)" strokeWidth="4" strokeLinecap="round" />
+      <path className="spark" d="M100 8 L108 20 L102 22 L112 34" fill="none" stroke="var(--color-bad)" strokeWidth="2" strokeLinejoin="round" />
+      <line className="snap" x1="128" y1="20" x2="220" y2="20" stroke="var(--color-line)" strokeWidth="4" strokeLinecap="round" />
     </svg>
   );
 }
@@ -326,7 +326,7 @@ export function Verdict({ run }: { run: Run }) {
           </div>
           <p className="font-display text-2xl font-semibold">DENIED. No money moved.</p>
           <p className="text-xs text-muted">Balance unchanged. No money moved.</p>
-          {v.code === "REVOKED" && <p className="font-mono text-sm font-semibold text-bad">REVOKED UPSTREAM</p>}
+          {v.code === "REVOKED" && <p className="font-display text-xl font-semibold text-bad">REVOKED UPSTREAM <span className="block font-sans text-xs font-normal text-muted">The owner cancelled a permit above this agent, so its authority is gone.</span></p>}
           {shot && <MoneyShot asked={shot.asked} allowed={shot.allowed} />}
           <p className="font-mono text-[0.7rem] text-bad">{v.code}: {v.detail}</p>
         </>

@@ -40,6 +40,12 @@ body { background: var(--color-bg); color: var(--color-fg); }
 .pulse { position: absolute; left: 50%; width: 10px; height: 26px; margin-left: -5px; border-radius: 9999px; background: var(--color-lime); box-shadow: 0 0 14px var(--color-lime); opacity: 0; animation: travel 650ms ease-in both; }
 @keyframes travel { 0% { top: 0; opacity: 0; } 15% { opacity: 1; } 100% { top: calc(100% - 26px); opacity: 0; } }
 
+/* breaker trip: spark flickers, the far side of the wire drops out */
+.spark { animation: spark 420ms steps(2) 3 both; }
+@keyframes spark { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: .2; } }
+.snap { animation: snap 500ms 300ms ease-out both; }
+@keyframes snap { from { transform: translateX(-14px); opacity: 1; stroke: var(--color-lime); } to { transform: none; opacity: 1; } }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
