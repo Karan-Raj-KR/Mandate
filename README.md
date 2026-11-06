@@ -47,6 +47,16 @@ const { entities } = await client
   .fetch();
 ```
 
+## Try it in two minutes (no USDC)
+
+```bash
+pnpm install
+cp .env.example .env     # fill SEPOLIA_RPC_URL, REGISTRY_ADDRESS and the demo keys
+pnpm demo                # payment service + fresh delegation chain + dashboard
+```
+
+Open http://localhost:3000 and use the buttons at the top: a valid payment, a large payment that needs approval, a rogue amplification, a replay, a real on-chain revoke of the root, and a reset. Payments are simulated; the checks and the Sepolia revocation read are real. See [docs/deploy.md](docs/deploy.md) for putting the dashboard on Vercel.
+
 ## Run it
 
 Needs Node 22+, pnpm, and Foundry for the contracts. Copy `.env.example` to `.env` and fill it in (keys never go in git).
