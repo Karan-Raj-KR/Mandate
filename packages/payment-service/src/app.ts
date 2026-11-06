@@ -17,6 +17,8 @@ import type {
 import { requestDisplayDigest } from "./digest.js";
 import type { NonceStore } from "./nonces.js";
 import type { RunStore } from "./requests.js";
+import { approvalSignal } from "./worldid.js";
+import type { ApprovalVerifier } from "./worldid.js";
 import type { TargetResolver } from "./targets.js";
 import type { Transfer } from "./transfer.js";
 
@@ -47,6 +49,10 @@ export type AppDeps = {
   now?: () => number;
   /** Dashboard history. Optional and display only; never read by an authorization decision. */
   runs?: RunStore;
+  /** Step 13. Absent means no approval can ever be accepted, so every request above the threshold is denied. */
+  approvalVerifier?: ApprovalVerifier;
+  /** Signs the rp_context for a browser approval. Absent means the approval endpoint is disabled. */
+  worldContext?: () => unknown;
   statusOf?: (chain: Delegation[]) => Promise<boolean[]>;
   dashboardOrigin?: string;
 };
@@ -91,16 +97,28 @@ export function createApp(deps: AppDeps): Express {
     log("✓", "LOCAL_VERIFY", "chain and request verified");
 
     if (request.amount > deps.cfg.stepUpThreshold) {
-      log("✗", "STEP_UP_REQUIRED", `amount ${request.amount} exceeds step-up threshold`);
-      res.status(403).json({
-        ok: false,
-        code: "STEP_UP_REQUIRED",
-        detail: "amount requires fresh World ID approval",
-      });
-      record({ ok: false, code: "STEP_UP_REQUIRED", detail: "amount requires fresh World ID approval" });
-      return;
+      // Step 13: needs a World ID approval bound to this exact request. Approval never widens scope:
+      // verifyLocal has already confirmed the request is inside the final delegation's scope.
+      const proof = req.body?.worldProof;
+      let detail = "amount requires fresh World ID approval";
+      if (proof !== undefined && deps.approvalVerifier) {
+        const approved = await deps.approvalVerifier(proof, approvalSignal(request, deps.cfg));
+        if (approved.ok) {
+          log("✓", "STEP_UP", "World ID approval bound to this request");
+          detail = "";
+        } else {
+          detail = approved.detail;
+        }
+      }
+      if (detail) {
+        log("✗", "STEP_UP_REQUIRED", `amount ${request.amount} exceeds step-up threshold: ${detail}`);
+        res.status(403).json({ ok: false, code: "STEP_UP_REQUIRED", detail });
+        record({ ok: false, code: "STEP_UP_REQUIRED", detail });
+        return;
+      }
+    } else {
+      log("✓", "STEP_UP", "below step-up threshold");
     }
-    log("✓", "STEP_UP", "below step-up threshold");
 
     // Synchronous check-and-consume: no await separates the check from the
     // write, so two concurrent requests with the same nonce can't both pass.
@@ -158,6 +176,21 @@ export function createApp(deps: AppDeps): Express {
     res.setHeader("access-control-allow-origin", deps.dashboardOrigin ?? "http://localhost:3000");
     res.setHeader("vary", "origin");
     res.status(200).json(deps.runs ? deps.runs.list() : []);
+  });
+
+  // Starts a browser approval: returns the signal the proof must be bound to, plus the signed rp_context.
+  app.post("/world/context", (req: Request, res: Response) => {
+    res.setHeader("access-control-allow-origin", deps.dashboardOrigin ?? "http://localhost:3000");
+    if (!deps.worldContext) {
+      res.status(503).json({ ok: false, detail: "World ID approval is not configured" });
+      return;
+    }
+    try {
+      const request = parseRequest(req.body?.request);
+      res.status(200).json({ signal: approvalSignal(request, deps.cfg), ...(deps.worldContext() as object) });
+    } catch (err) {
+      res.status(400).json({ ok: false, detail: err instanceof Error ? err.message : "invalid request" });
+    }
   });
 
   app.get("/balance", async (_req: Request, res: Response) => {

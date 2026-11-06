@@ -9,6 +9,7 @@ import { createApp } from "./app.js";
 import { getRealBalance, getSimulatedBalance } from "./ledger.js";
 import { createNonceStore } from "./nonces.js";
 import { createRunStore } from "./requests.js";
+import { createRpContextSigner, createWorldVerifier } from "./worldid.js";
 import { createTargetResolver } from "./targets.js";
 import { createRealTransfer, createSimulatedTransfer } from "./transfer.js";
 
@@ -48,6 +49,14 @@ const statusOf = async (chain: { issuer: `0x${string}`; id: `0x${string}` }[]) =
     args: [chain.map((d) => d.issuer), chain.map((d) => d.id)],
   }))];
 
+// World ID step-up is enabled only when fully configured. Otherwise requests above the threshold stay denied.
+const worldRp = process.env.WORLD_RP_ID;
+const worldKey = process.env.WORLD_SIGNING_KEY;
+const worldEnv = process.env.WORLD_ENV === "staging" ? "staging" : "production";
+const worldAction = process.env.WORLD_ACTION ?? "approve-payment";
+const approvalVerifier = worldRp ? createWorldVerifier({ rpId: worldRp, environment: worldEnv }) : undefined;
+const worldContext = worldRp && worldKey ? createRpContextSigner({ signingKeyHex: worldKey, action: worldAction, rpId: worldRp }) : undefined;
+
 const app = createApp({
   cfg,
   verifyLocal,
@@ -59,6 +68,8 @@ const app = createApp({
   nonceStore: createNonceStore(),
   simulated,
   runs: createRunStore(),
+  approvalVerifier,
+  worldContext,
   statusOf,
   dashboardOrigin: process.env.DASHBOARD_ORIGIN,
 });
