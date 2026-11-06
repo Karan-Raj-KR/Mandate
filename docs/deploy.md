@@ -19,6 +19,10 @@ npx vercel --prod     # production URL
 
 If Vercel asks for settings in its web UI: framework Next.js, root directory `packages/dashboard`, build command `pnpm build`, and leave "include source files outside of the root directory" on (the dashboard imports `@mandate/core`). Do not set `NEXT_PUBLIC_SERVICE_URL` for this deployment.
 
+## The live /verify page on a hosted build
+
+`/verify` is not mock data. It reads ENS, Arkiv and the Sepolia registry from the server, holds no signing key, and needs only public values: `REGISTRY_ADDRESS`, `ROOT_ISSUER`, `USDC_ADDRESS`, `ARKIV_TRUSTED_OWNERS` and `SEPOLIA_RPC_URL` (a public RPC works). Without `ARKIV_ACCESS_KEY` it uses Arkiv's rate-limited public endpoint, so a limit shows up as a denial and never as a false pass.
+
 ## Hosted with a live backend (not set up)
 
 The payment service is a long-running Express server with in-memory nonces and history, so it does not fit Vercel functions. To make a hosted dashboard live, run `pnpm service:demo` on a host that keeps a process running (Railway, Fly, a VM), set `NEXT_PUBLIC_SERVICE_URL` on the dashboard to that URL, and set `DASHBOARD_ORIGIN` on the service to the dashboard's origin. The run buttons stay local-only by design; a public site should not be able to trigger an on-chain revoke.

@@ -51,3 +51,5 @@ The earlier chain's hops had expired off Arkiv, so `verify` was correctly return
 | `pnpm attack:amplify` | denied, balance unchanged | 999999500000 before and after |
 | `pnpm attack:replay` | first 200, second `REPLAY` | |
 | `pnpm attack:revoke` on a separate throwaway chain | `REVOKED` after a real revoke | [`0x14863039…bf35`](https://sepolia.etherscan.io/tx/0x1486303900c2e5ddbab31d8b3155a0ce5c55339cf07cabee1aa1a324f0eebf35) |
+
+After this run, `pnpm fresh-chain` published one more chain, root `0x79d940bc…d470`, in ENS tx [`0xafb68e3e…76a8`](https://sepolia.etherscan.io/tx/0xafb68e3e52bed28ccbdbe43dd92c40b4cf5bf641c618b635c4069558d5f376a8). Each demo reset does the same, so the live root changes.
