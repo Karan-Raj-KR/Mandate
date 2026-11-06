@@ -99,7 +99,9 @@ export function PermitChain({ run, showRevoked }: { run: Run; showRevoked: boole
   const edges = run.verdict.ok ? [] : run.verdict.edges ?? [];
   const root = run.chain[0];
   const firstRevoked = showRevoked ? run.revoked.indexOf(true) : -1;
-  let px = 10;
+  // wire thickness per hop: authority only shrinks; an amplified hop is drawn thicker than its parent
+  const WIDTHS = [14, 8, 3];
+  let px = WIDTHS[0];
   return (
     <div className="space-y-0">
       <div className="grid grid-cols-[3rem_1fr] items-center gap-4 pb-4">
@@ -116,7 +118,7 @@ export function PermitChain({ run, showRevoked }: { run: Run; showRevoked: boole
       {run.chain.map((d, i) => {
         const failures = edges.find((e) => e.edge === i)?.failures ?? [];
         const bad = new Set(failures.map((f) => f.dimension));
-        px = failures.length ? px + 4 : i === 0 ? px : Math.max(2, px - 3);
+        px = failures.length ? px + 6 : WIDTHS[i] ?? 2;
         const dead = firstRevoked >= 0 && i >= firstRevoked;
         const state = dead ? "dead" : failures.length ? "grew" : "live";
         return (
@@ -156,7 +158,7 @@ export function PermitChain({ run, showRevoked }: { run: Run; showRevoked: boole
 function Violations({ edge, parent, child, failures }: { edge: number; parent: string; child: string; failures: NarrowFailure[] }) {
   return (
     <div className="mt-3 border-t border-bad/40 pt-2 text-bad">
-      <p className="font-semibold">This permit grew its powers ({failures.length} {failures.length === 1 ? "way" : "ways"})</p>
+      <p className="font-semibold">This agent tried to give more power than it had ({failures.length} {failures.length === 1 ? "way" : "ways"})</p>
       <ul className="mt-1 space-y-1">
         {failures.map((f) => (
           <li key={f.dimension}>

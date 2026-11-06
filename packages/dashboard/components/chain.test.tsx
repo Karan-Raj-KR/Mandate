@@ -24,7 +24,7 @@ describe("stage rendering", () => {
     for (const dim of ["actions", "maxAmount", "targets"]) expect(gate).toContain(`<b>${dim}</b>`);
     expect(gate).toContain("AMPLIFICATION");
     const chain = renderToStaticMarkup(<PermitChain run={run} showRevoked={false} />);
-    expect(chain).toContain("This permit grew its powers (3 ways)");
+    expect(chain).toContain("This agent tried to give more power than it had (3 ways)");
     const verdict = renderToStaticMarkup(<Verdict run={run} />);
     expect(verdict).toContain("DENIED. No money moved.");
     expect(verdict).toContain("Balance unchanged. No money moved.");
