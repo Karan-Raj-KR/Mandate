@@ -32,7 +32,7 @@ export type Tone = keyof typeof TONE;
 
 /** Small status label: colour AND text, never colour alone. */
 export function Badge({ tone, children }: { tone: Tone; children: ReactNode }) {
-  return <span className={`inline-block border border-current px-1.5 py-0.5 font-mono text-[0.7rem] font-bold uppercase tracking-wider ${TONE[tone]}`}>{children}</span>;
+  return <span className={`inline-block rounded-full border border-current/60 px-2 py-0.5 font-mono text-[0.65rem] font-medium uppercase tracking-wider ${TONE[tone]}`}>{children}</span>;
 }
 
 /** Rubber stamp. `thunk` animates it landing. */
@@ -108,6 +108,6 @@ export function Modal({ open, title, onClose, children }: { open: boolean; title
 }
 
 export function Button({ tone = "plain", ...p }: React.ButtonHTMLAttributes<HTMLButtonElement> & { tone?: "plain" | "ink" | "bad" }) {
-  const c = { plain: "border-fg bg-panel hover:bg-fg hover:text-panel", ink: "border-fg bg-fg text-panel hover:bg-transparent hover:text-fg", bad: "border-bad bg-bad text-panel" }[tone];
-  return <button type="button" {...p} className={`border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-40 ${c} ${p.className ?? ""}`} />;
+  const c = { plain: "border-line bg-panel hover:border-muted", ink: "border-lime bg-lime text-bg font-semibold hover:bg-lime/85", bad: "border-bad bg-bad text-bg" }[tone];
+  return <button type="button" {...p} className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-40 ${c} ${p.className ?? ""}`} />;
 }

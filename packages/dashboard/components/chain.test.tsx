@@ -26,7 +26,7 @@ describe("stage rendering", () => {
     const chain = renderToStaticMarkup(<PermitChain run={run} showRevoked={false} />);
     expect(chain).toContain("This permit grew its powers (3 ways)");
     const verdict = renderToStaticMarkup(<Verdict run={run} />);
-    expect(verdict).toContain("Denied");
+    expect(verdict).toContain("DENIED. No money moved.");
     expect(verdict).toContain("Balance unchanged. No money moved.");
     expect(moneyShot(run)).toEqual({ asked: 450_000_000n, allowed: 100_000_000n });
   });

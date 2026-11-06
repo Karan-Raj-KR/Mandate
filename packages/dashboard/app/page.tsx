@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Gatekeeper, InvoiceSheet, MoneyShot, moneyShot, PermitChain, RequestCard, StageColumn, Timeline, Typewriter, Verdict } from "@/components/chain";
+import { Gatekeeper, InvoiceSheet, PermitChain, RequestCard, StageColumn, Timeline, Typewriter, Verdict } from "@/components/chain";
 import { Button, Modal, useToast, usdc } from "@/components/ui";
 import { fetchTimeline, MOCK, mock, mockRevokeRoot, mockRun, type Run } from "@/lib/api";
 
@@ -121,7 +121,6 @@ export default function Stage() {
   }, [load]);
 
   const caption = run && beat > 0 ? CAPTION[beats[Math.min(beat, beats.length) - 1]](run, pick) : "Pick a scenario and press Play (or Space).";
-  const shot = run && shown("checks") ? moneyShot(run) : null;
 
   return (
     <div className="space-y-6">
@@ -130,11 +129,11 @@ export default function Stage() {
         {SCENARIOS.map((s) => (
           <button
             key={s.k} type="button" disabled={!MOCK} onClick={() => start(s.k)}
-            className={`permit min-w-52 flex-1 px-4 py-2 text-left transition-colors disabled:opacity-50 ${pick === s.k ? "!bg-fg text-panel" : "hover:bg-panel"}`}
+            className={`panel min-w-52 flex-1 px-4 py-2.5 text-left transition-colors disabled:opacity-50 ${pick === s.k ? "!border-lime" : "hover:!border-muted"}`}
             aria-pressed={pick === s.k}
           >
-            <span className="font-mono text-xs opacity-70">{s.k}</span> <span className="font-display text-lg">{s.title}</span>
-            <span className="block text-xs opacity-80">{s.line}</span>
+            <span className={`font-mono text-xs ${pick === s.k ? "text-lime" : "text-muted"}`}>0{s.k}</span> <span className="font-display text-lg font-semibold">{s.title}</span>
+            <span className="block text-xs text-muted">{s.line}</span>
           </button>
         ))}
         <div className="flex flex-col justify-center gap-1">
@@ -149,27 +148,21 @@ export default function Stage() {
       <p className="min-h-[2.5em] font-display text-2xl leading-snug md:text-3xl" aria-live="polite">{caption}</p>
 
       {run && (
-        <div className="grid items-start gap-6 md:grid-cols-2 2xl:grid-cols-[1fr_1.3fr_0.85fr_1.05fr_0.95fr]">
+        <div className="grid items-start gap-8 lg:grid-cols-2 2xl:grid-cols-[1fr_1.45fr_1.15fr]">
           <StageColumn n={1} title="The invoice">
             {shown("invoice") && <InvoiceSheet text={run.invoice} />}
             {shown("output") && <Typewriter label={run.agentOutput.label} text={run.agentOutput.text} />}
           </StageColumn>
-          <StageColumn n={2} title="The chain of permits">
+          <StageColumn n={2} title="Authority, hop by hop">
             {shown("permits") && <PermitChain run={run} showRevoked={shown("revoke") || (beats === BEATS && shown("permits"))} />}
-          </StageColumn>
-          <StageColumn n={3} title="The request">
             {shown("request") && <RequestCard run={run} />}
           </StageColumn>
-          <StageColumn n={4} title="The gatekeeper">
+          <StageColumn n={3} title="The breaker">
             {shown("checks") && <Gatekeeper run={run} />}
-          </StageColumn>
-          <StageColumn n={5} title="The verdict">
             {shown("stamp") && <Verdict run={run} />}
           </StageColumn>
         </div>
       )}
-
-      {shot && <MoneyShot asked={shot.asked} allowed={shot.allowed} />}
 
       <div className="grid gap-6 md:grid-cols-[1fr_auto]">
         <div>

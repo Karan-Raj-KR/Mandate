@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import type { DenyCode, NarrowFailure, Verdict } from "@mandate/core";
+import type { DenyCode, NarrowFailure, Verdict as VerdictT } from "@mandate/core";
+import { SpotlightCard } from "@/components/kit/spotlight-card";
 import { ETHERSCAN, type Run } from "@/lib/api";
-import { Badge, Hash, Monogram, Stamp, short, time, usdc } from "./ui";
+import { Badge, Hash, short, time, usdc } from "./ui";
 
 const delay = (ms: number): CSSProperties => ({ animationDelay: `${ms}ms` });
 const ROLE: Record<string, string> = { treasury: "Owner · human", ops: "Operations agent", procure: "Procurement agent · LLM", settle: "Settlement agent" };
@@ -11,8 +12,8 @@ const role = (ens: string) => ROLE[ens.split(".")[0]] ?? "Agent";
 export function StageColumn({ n, title, children }: { n: number; title: string; children: ReactNode }) {
   return (
     <section className="min-w-0 space-y-3">
-      <h2 className="flex items-baseline gap-2 border-b border-fg pb-1 font-display text-xl">
-        <span className="font-mono text-xs text-muted">{n}</span>{title}
+      <h2 className="flex items-baseline gap-2 font-display text-lg font-semibold">
+        <span className="font-mono text-xs text-lime">0{n}</span>{title}
       </h2>
       {children}
     </section>
@@ -23,7 +24,7 @@ export function StageColumn({ n, title, children }: { n: number; title: string; 
 export function PlainText({ label, text }: { label: string; text: string }) {
   return (
     <section className="panel">
-      <h3 className="border-b border-line px-3 py-1.5 font-mono text-[0.7rem] font-bold uppercase tracking-wider text-muted">{label}</h3>
+      <h3 className="border-b border-line px-3 py-2 font-mono text-[0.7rem] uppercase tracking-wider text-muted">{label}</h3>
       <pre className="overflow-x-auto whitespace-pre-wrap break-words p-3 font-mono text-xs leading-relaxed">{text}</pre>
     </section>
   );
@@ -45,10 +46,10 @@ export function InvoiceSheet({ text }: { text: string }) {
   const lines = injectedLines(text);
   const poisoned = lines.some((l) => l.flagged);
   return (
-    <div className="panel slide-in relative p-4 shadow-[3px_3px_0_#1b1a1712]">
+    <div className="panel enter p-4">
       <p className="mb-2 flex justify-between font-mono text-[0.7rem] uppercase tracking-wider text-muted">
         <span>Supplier invoice</span>
-        {poisoned && <span className="font-bold text-bad">Hidden instruction</span>}
+        {poisoned && <span className="rounded-full border border-bad px-2 text-bad">injected</span>}
       </p>
       <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-relaxed">
         {lines.map(({ line, flagged }, i) => (
@@ -75,82 +76,86 @@ export function Typewriter({ label, text }: { label: string; text: string }) {
 
 function Field({ k, bad, children }: { k: string; bad?: boolean; children: ReactNode }) {
   return (
-    <div className="grid grid-cols-[6.5rem_1fr] items-baseline gap-2 border-b border-dotted border-line py-0.5">
-      <span className="text-[0.7rem] uppercase tracking-wider text-muted">{k}</span>
-      <span className={`font-mono text-xs ${bad ? "font-bold text-bad underline decoration-wavy" : ""}`}>{children}</span>
+    <div className="flex items-baseline justify-between gap-3 py-0.5">
+      <span className="text-[0.7rem] text-muted">{k}</span>
+      <span className={`text-right font-mono text-xs ${bad ? "font-semibold text-bad" : ""}`}>{children}</span>
     </div>
   );
 }
 
-/** Owner → permits, each drawn narrower; a permit that grew is drawn wider, in red. */
+/** One vertical wire segment. Authority is current: thinner = less authority. */
+function Wire({ px, state }: { px: number; state: "live" | "grew" | "dead" }) {
+  const color = { live: "bg-lime", grew: "bg-bad", dead: "bg-line" }[state];
+  return <span aria-hidden className={`absolute left-1/2 top-0 bottom-0 -translate-x-1/2 rounded-full ${color}`} style={{ width: px }} />;
+}
+
+function Node({ label, state }: { label: string; state: "live" | "grew" | "dead" }) {
+  const c = { live: "border-lime text-lime", grew: "border-bad text-bad", dead: "border-line text-muted" }[state];
+  return <span className={`relative z-10 grid size-10 place-items-center rounded-full border-2 bg-bg font-display text-xs font-bold ${c}`}>{label}</span>;
+}
+
+/** Owner → agents as nodes on a wire; each hop's wire thinner than the one above. */
 export function PermitChain({ run, showRevoked }: { run: Run; showRevoked: boolean }) {
   const edges = run.verdict.ok ? [] : run.verdict.edges ?? [];
   const root = run.chain[0];
   const firstRevoked = showRevoked ? run.revoked.indexOf(true) : -1;
-  let width = 100;
+  let px = 10;
   return (
-    <div className="relative flex flex-col items-center gap-5">
-      <div className="enter flex w-full items-center gap-3">
-        <Monogram name={root.issuerName} dark />
-        <div className="min-w-0">
-          <p className="font-display text-base">{role(root.issuerName)}</p>
-          <p className="truncate font-mono text-xs">{root.issuerName}</p>
+    <div className="space-y-0">
+      <div className="grid grid-cols-[3rem_1fr] items-center gap-4 pb-4">
+        <div className="relative flex justify-center self-stretch"><Node label={root.issuerName.slice(0, 2).toUpperCase()} state={firstRevoked === 0 ? "dead" : "live"} /></div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div>
+            <p className="font-display text-base font-semibold">{role(root.issuerName)}</p>
+            <p className="font-mono text-xs text-muted">{root.issuerName}</p>
+          </div>
+          <Badge tone={run.mock ? "warn" : "ok"}>World-verified{run.mock ? " · mock" : ""}</Badge>
         </div>
-        <span className="ml-auto"><Badge tone={run.mock ? "warn" : "ok"}>World-verified{run.mock ? " · mock" : ""}</Badge></span>
       </div>
 
       {run.chain.map((d, i) => {
         const failures = edges.find((e) => e.edge === i)?.failures ?? [];
         const bad = new Set(failures.map((f) => f.dimension));
-        width = failures.length ? Math.min(width + 15, 112) : i === 0 ? 100 : width - 15;
-        const revokedHere = firstRevoked === i;
-        const voided = firstRevoked >= 0 && i > firstRevoked;
+        px = failures.length ? px + 4 : i === 0 ? px : Math.max(2, px - 3);
+        const dead = firstRevoked >= 0 && i >= firstRevoked;
+        const state = dead ? "dead" : failures.length ? "grew" : "live";
         return (
-          <div key={d.id} className="enter relative w-full" style={delay(i * 260)}>
-            {/* the revocation runs down through every child permit */}
-            {voided && <div aria-hidden className="draw-down absolute -top-5 bottom-0 left-1/2 z-20 w-1 -translate-x-1/2 bg-bad" style={delay(300 + (i - firstRevoked) * 350)} />}
-            <article
-              className={`permit mx-auto w-(--wm) p-3 text-xs md:w-(--w) ${failures.length ? "!border-bad md:-ml-[6%]" : ""} ${voided ? "opacity-60" : ""}`}
-              style={{ "--w": `${width}%`, "--wm": `${Math.min(width, 100)}%` } as CSSProperties}
-            >
-              <p className="mb-2 flex justify-between font-mono text-[0.65rem] uppercase tracking-widest text-muted">
-                <span>Permit No. {short(d.id)}</span>
-                <span>{i === 0 ? "root" : `level ${i}`}</span>
-              </p>
-              <div className="mb-2 flex items-center gap-2">
-                <Monogram name={d.issuerName} />
-                <span className="text-muted">→</span>
-                <Monogram name={d.subjectName} dark />
+          <div key={d.id} className="enter grid grid-cols-[3rem_1fr] gap-4" style={delay(i * 260)}>
+            <div className="relative flex flex-col items-center">
+              <Wire px={px} state={state} />
+              <span className="h-6" />
+              <Node label={d.subjectName.slice(0, 2).toUpperCase()} state={state} />
+            </div>
+            <SpotlightCard tone={state === "grew" ? "bad" : state === "dead" ? "off" : "lime"} className={`mb-4 p-4 text-xs ${state === "grew" ? "border-bad" : "border-line"} ${dead ? "opacity-60" : ""}`}>
+              <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="font-display text-sm leading-tight">{role(d.subjectName)}</p>
+                  <p className="font-display text-sm font-semibold">{role(d.subjectName)}</p>
                   <p className="truncate font-mono text-[0.7rem] text-muted" title={d.subjectName}>{d.subjectName}</p>
                 </div>
+                <span className="font-mono text-[0.65rem] text-muted">permit {short(d.id)} · wire {px}px</span>
               </div>
               <Field k="Actions" bad={bad.has("actions")}>{d.scope.actions.join(", ")}</Field>
               <Field k="Max per request" bad={bad.has("maxAmount")}>{usdc(d.scope.maxAmount)}</Field>
               <Field k="Expires" bad={bad.has("expiry")}>{time(d.scope.expiry)}</Field>
               <Field k="Pay to" bad={bad.has("targets")}>{d.scope.targets.join(", ") === "*" ? "anyone (*)" : d.scope.targets.join(", ")}</Field>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className={`grid size-7 place-items-center rounded-full border-2 font-mono text-[0.5rem] font-bold ${run.mock ? "border-dashed border-warn text-warn" : "border-lime text-lime"}`} aria-hidden>SEAL</span>
-                <span className="text-[0.7rem]">{run.mock ? "Signature not verified (mock fixture)" : "Signature verified"}</span>
-                {voided && <Badge tone="bad">Void · parent revoked</Badge>}
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Badge tone={run.mock ? "warn" : "ok"}>{run.mock ? "Signature · mock, not verified" : "Signature verified"}</Badge>
+                {firstRevoked === i ? <Badge tone="bad">Revoked</Badge>
+                  : dead ? <Badge tone="bad">Void · parent revoked</Badge>
+                  : <Badge tone={run.mock ? "warn" : "ok"}>{run.mock ? "Not revoked · mock read" : "Not revoked"}</Badge>}
               </div>
               {failures.length > 0 && <Violations edge={i} parent={run.chain[i - 1].subjectName} child={d.subjectName} failures={failures} />}
-            </article>
-            {revokedHere && (
-              <div className="pointer-events-none absolute inset-0 grid place-items-center"><Stamp tone="bad" big>Revoked</Stamp></div>
-            )}
+            </SpotlightCard>
           </div>
         );
       })}
-
     </div>
   );
 }
 
 function Violations({ edge, parent, child, failures }: { edge: number; parent: string; child: string; failures: NarrowFailure[] }) {
   return (
-    <div className="mt-2 border-t border-bad pt-2 text-bad">
+    <div className="mt-3 border-t border-bad/40 pt-2 text-bad">
       <p className="font-semibold">This permit grew its powers ({failures.length} {failures.length === 1 ? "way" : "ways"})</p>
       <ul className="mt-1 space-y-1">
         {failures.map((f) => (
@@ -168,10 +173,9 @@ export function RequestCard({ run }: { run: Run }) {
   const r = run.request;
   return (
     <div className="panel enter p-4 text-sm">
-      <p className="mb-1 font-mono text-[0.7rem] uppercase tracking-wider text-muted">Payment request · signed by</p>
-      <p className="mb-3 truncate font-mono text-xs">{run.chain[run.chain.length - 1].subjectName}</p>
-      <p className="font-display text-lg leading-snug">Pay <span className="font-mono font-semibold">{usdc(r.amount)}</span> to <span className="font-mono font-semibold">{r.target}</span></p>
-      <div className="mt-3 space-y-0.5 text-xs">
+      <p className="mb-1 font-mono text-[0.7rem] uppercase tracking-wider text-muted">Signed request · {short(run.chain[run.chain.length - 1].subjectName)}</p>
+      <p className="font-display text-xl font-semibold">Pay <span className="font-mono">{usdc(r.amount)}</span> → <span className="font-mono">{r.target}</span></p>
+      <div className="mt-2">
         <Field k="Action">{r.action}</Field>
         <Field k="For service">{r.audience}</Field>
         <Field k="Valid until">{time(Number(r.deadline))}</Field>
@@ -181,7 +185,7 @@ export function RequestCard({ run }: { run: Run }) {
   );
 }
 
-// ---------- the gatekeeper: plain-English checks, technical detail underneath ----------
+// ---------- the breaker: plain-English checks, technical detail underneath ----------
 
 /** SPEC §6 step each deny code comes from. Checks after the first failure are "not reached". */
 const STEP: Record<DenyCode, number> = {
@@ -199,7 +203,7 @@ const CHECKS = [
 ];
 type CheckStatus = "pass" | "fail" | "not reached" | "skipped (mock)";
 
-export function checkStatuses(v: Verdict, mock: boolean): CheckStatus[] {
+export function checkStatuses(v: VerdictT, mock: boolean): CheckStatus[] {
   const failStep = v.ok ? Infinity : STEP[v.code];
   return CHECKS.map((c) => {
     if (!v.ok && c.steps.includes(failStep)) return "fail";
@@ -217,16 +221,19 @@ export function Gatekeeper({ run }: { run: Run }) {
   const v = run.verdict;
   const st = checkStatuses(v, run.mock);
   return (
-    <div className="panel p-4">
-      <p className="mb-2 font-mono text-[0.7rem] uppercase tracking-wider text-muted">Payment service · POST /execute{run.mock ? " · simulated (mock)" : ""}</p>
-      <ol className="space-y-2">
+    <div className={`panel p-4 ${v.ok ? "" : "border-bad/50"}`}>
+      <p className="mb-3 flex items-center justify-between font-mono text-[0.7rem] uppercase tracking-wider text-muted">
+        <span>Breaker · POST /execute{run.mock ? " · simulated" : ""}</span>
+        <span className={`rounded-full border px-2 py-0.5 ${v.ok ? "border-lime text-lime" : "border-bad text-bad"}`}>{v.ok ? "closed" : "tripped"}</span>
+      </p>
+      <ol className="space-y-2.5">
         {CHECKS.map((c, i) => {
           const [mark, color] = MARK[st[i]];
           return (
-            <li key={c.title} className="enter grid grid-cols-[1.5rem_1fr] gap-x-2" style={delay(i * 180)}>
-              <span className={`font-mono text-lg font-bold leading-none ${color}`} aria-hidden>{mark}</span>
+            <li key={c.title} className="enter grid grid-cols-[1.25rem_1fr] gap-x-2" style={delay(i * 180)}>
+              <span className={`font-mono text-base font-bold leading-5 ${color}`} aria-hidden>{mark}</span>
               <div>
-                <p className="text-sm font-medium">{c.title} <span className={`font-mono text-[0.65rem] uppercase ${color}`}>{st[i]}</span></p>
+                <p className="text-sm">{c.title} <span className={`ml-1 font-mono text-[0.65rem] uppercase ${color}`}>{st[i]}</span></p>
                 <p className="font-mono text-[0.65rem] text-muted">{c.rule}</p>
                 {st[i] === "fail" && !v.ok && (
                   <div className="mt-1 font-mono text-[0.7rem] text-bad">
@@ -257,49 +264,67 @@ export function moneyShot(run: Run): { asked: bigint; allowed: bigint } | null {
 export function MoneyShot({ asked, allowed }: { asked: bigint; allowed: bigint }) {
   const boxPct = Number((allowed * 10000n) / asked) / 100;
   return (
-    <div className="panel enter p-5 md:p-8">
-      <div className="grid gap-6 md:grid-cols-2">
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-4">
         <div>
-          <p className="font-mono text-xs uppercase tracking-widest text-bad">Asked</p>
-          <p className="font-mono text-4xl font-bold text-bad md:text-6xl">{usdc(asked)}</p>
+          <p className="font-mono text-[0.7rem] uppercase tracking-widest text-bad">Asked</p>
+          <p className="font-display text-3xl font-bold text-bad md:text-4xl">{usdc(asked)}</p>
         </div>
         <div>
-          <p className="font-mono text-xs uppercase tracking-widest text-lime">Allowed</p>
-          <p className="font-mono text-4xl font-bold text-lime md:text-6xl">{usdc(allowed)}</p>
+          <p className="font-mono text-[0.7rem] uppercase tracking-widest text-lime">Allowed</p>
+          <p className="font-display text-3xl font-bold text-lime md:text-4xl">{usdc(allowed)}</p>
         </div>
       </div>
-      <div className="relative mt-6 h-10" role="img" aria-label={`${usdc(allowed)} allowed, ${usdc(asked - allowed)} over the limit`}>
-        <div className="absolute inset-y-0 left-0 z-10 border-2 border-fg bg-lime/80" style={{ width: `${boxPct}%` }} />
-        <div className="spill absolute inset-y-1 right-0 bg-bad/85" style={{ left: `${boxPct}%` }} />
-        <span className="absolute -bottom-6 font-mono text-xs text-bad" style={{ left: `${boxPct}%` }}>+{usdc(asked - allowed)} over the limit</span>
+      <div className="relative h-7" role="img" aria-label={`${usdc(allowed)} allowed, ${usdc(asked - allowed)} over the limit`}>
+        <div className="absolute inset-y-0 left-0 z-10 rounded-l border border-lime bg-lime/80" style={{ width: `${boxPct}%` }} />
+        <div className="spill absolute inset-y-1 right-0 rounded-r bg-bad/80" style={{ left: `${boxPct}%` }} />
       </div>
+      <p className="font-mono text-xs text-bad">+{usdc(asked - allowed)} over the limit</p>
     </div>
   );
 }
 
-/** The verdict slip: stamp + receipt, or "No money moved". */
+/** Snapped wire with a spark: drawn when the breaker trips. */
+function SnappedWire() {
+  return (
+    <svg aria-hidden viewBox="0 0 220 40" className="h-10 w-full">
+      <line x1="0" y1="20" x2="92" y2="20" stroke="var(--color-lime)" strokeWidth="4" strokeLinecap="round" />
+      <path d="M100 8 L108 20 L102 22 L112 34" fill="none" stroke="var(--color-bad)" strokeWidth="2" strokeLinejoin="round" />
+      <line x1="128" y1="20" x2="220" y2="20" stroke="var(--color-line)" strokeWidth="4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** The result: EXECUTED with receipt, or TRIPPED with every reason and "No money moved". */
 export function Verdict({ run }: { run: Run }) {
   const v = run.verdict;
   const r = run.request;
+  const shot = moneyShot(run);
   return (
-    <div className="panel relative min-h-56 p-4 text-sm">
-      <p className="font-mono text-[0.7rem] uppercase tracking-wider text-muted">Decision</p>
-      <p className="mt-1 font-display text-lg">Pay {usdc(r.amount)} to {r.target}</p>
-      <div className="my-5 text-center">
-        <Stamp tone={v.ok ? "ok" : "bad"} big>{v.ok ? "Paid" : "Denied"}</Stamp>
-      </div>
+    <div className={`panel enter space-y-4 p-5 ${v.ok ? "border-lime/60" : "border-bad/60"}`}>
       {v.ok ? (
-        run.txHash && (run.mock
-          ? <p className="text-xs">Receipt <span className="font-mono">{short(run.txHash)}</span> <Badge tone="warn">Mock tx · no Etherscan link</Badge></p>
-          : <p className="text-xs">Receipt <Hash value={run.txHash} /> · <a className="underline" href={`${ETHERSCAN}/tx/${run.txHash}`} target="_blank" rel="noreferrer">View on Sepolia Etherscan</a></p>)
+        <>
+          <p className="font-display text-5xl font-bold text-lime">EXECUTED</p>
+          <p className="text-sm">Paid {usdc(r.amount)} to {r.target}.</p>
+          {run.txHash && (run.mock
+            ? <p className="text-xs">Receipt <span className="font-mono">{short(run.txHash)}</span> <Badge tone="warn">Mock tx · no Etherscan link</Badge></p>
+            : <p className="text-xs">Receipt <Hash value={run.txHash} /> · <a className="text-lime underline" href={`${ETHERSCAN}/tx/${run.txHash}`} target="_blank" rel="noreferrer">View on Sepolia Etherscan</a></p>)}
+        </>
       ) : (
         <>
-          <p className="font-display text-lg">Balance unchanged. No money moved.</p>
-          <p className="mt-1 font-mono text-[0.7rem] text-bad">{v.code}: {v.detail}</p>
+          <div className="flex items-center gap-4">
+            <p className="font-display text-5xl font-bold text-bad">TRIPPED</p>
+            <div className="min-w-24 flex-1"><SnappedWire /></div>
+          </div>
+          <p className="font-display text-2xl font-semibold">DENIED. No money moved.</p>
+          <p className="text-xs text-muted">Balance unchanged. No money moved.</p>
+          {v.code === "REVOKED" && <p className="font-mono text-sm font-semibold text-bad">REVOKED UPSTREAM</p>}
+          {shot && <MoneyShot asked={shot.asked} allowed={shot.allowed} />}
+          <p className="font-mono text-[0.7rem] text-bad">{v.code}: {v.detail}</p>
         </>
       )}
       {run.stepUp.required && (
-        <p className="mt-3 border-t border-line pt-2 text-xs">
+        <p className="border-t border-line pt-2 text-xs">
           World ID approval required above $15:{" "}
           {run.stepUp.approvedNonce === r.nonce ? <Badge tone="ok">Approved for this exact request</Badge> : <Badge tone="bad">Not approved for this request</Badge>}
         </p>
@@ -311,12 +336,12 @@ export function Verdict({ run }: { run: Run }) {
 export function Timeline({ runs, selected, onSelect }: { runs: Run[]; selected?: string; onSelect: (r: Run) => void }) {
   if (!runs.length) return null;
   return (
-    <ol className="ruled panel max-h-64 overflow-y-auto px-3 text-xs">
+    <ol className="panel ruled max-h-64 overflow-y-auto px-3 text-xs">
       {runs.map((r) => (
         <li key={r.id} className="flex h-[2.4rem] items-center">
-          <button type="button" onClick={() => onSelect(r)} className={`flex w-full items-center gap-3 text-left ${r.id === selected ? "font-semibold" : ""}`}>
+          <button type="button" onClick={() => onSelect(r)} className={`flex w-full items-center gap-3 text-left ${r.id === selected ? "text-lime" : ""}`}>
             <span className="w-20 shrink-0 font-mono text-muted">{new Date(r.at * 1000).toLocaleTimeString("en-GB")}</span>
-            <Badge tone={r.verdict.ok ? "ok" : "bad"}>{r.verdict.ok ? "Paid" : `Denied · ${r.verdict.code}`}</Badge>
+            <Badge tone={r.verdict.ok ? "ok" : "bad"}>{r.verdict.ok ? "Executed" : `Denied · ${r.verdict.code}`}</Badge>
             <span className="truncate font-mono">{usdc(r.request.amount)} → {r.request.target}</span>
           </button>
         </li>
