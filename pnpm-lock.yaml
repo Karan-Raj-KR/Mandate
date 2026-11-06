@@ -28,6 +28,28 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/agents:
+    dependencies:
+      '@mandate/core':
+        specifier: workspace:*
+        version: link:../core
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.6.1
+      viem:
+        specifier: ^2.21.54
+        version: 2.57.16(typescript@5.9.3)(zod@3.25.76)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.5
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.15
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.5)
+
   packages/core:
     dependencies:
       viem:

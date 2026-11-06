@@ -1,0 +1,25 @@
+{
+  "name": "@mandate/agents",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "ops": "tsx src/ops.ts",
+    "procure": "tsx src/procure.ts",
+    "rogue": "ROGUE=1 tsx src/procure.ts",
+    "settle": "tsx src/settle.ts",
+    "start": "tsx src/start.ts",
+    "demo": "tsx src/demo.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@mandate/core": "workspace:*",
+    "dotenv": "^16.4.7",
+    "viem": "^2.21.54"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "vitest": "^2.1.8"
+  }
+}
