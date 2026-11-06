@@ -29,7 +29,7 @@ export type AgentOptions = {
   service?: { url: string; audience: string };
 };
 
-class HttpError extends Error {
+export class HttpError extends Error {
   constructor(public status: number, message: string, public extra: Record<string, unknown> = {}) {
     super(message);
   }
@@ -80,6 +80,10 @@ function parseScopeInput(x: any): Scope {
 export type Agent = {
   server: Server;
   chain: () => Delegation[];
+  /** Sign a delegation as this agent. `enforceNarrowing` overrides the agent default for this call only. */
+  delegateTo: (body: unknown, o?: { enforceNarrowing?: boolean }) => Promise<{ delegation: Delegation; chain: Delegation[] }>;
+  /** Register an extra POST route (used by the LLM procurement agent). */
+  addRoute: (path: string, handler: (body: any) => Promise<unknown>) => void;
   listen: (port: number) => Promise<number>;
   close: () => Promise<void>;
 };
@@ -97,14 +101,14 @@ export function createAgent(opts: AgentOptions): Agent {
     return { ok: true, depth: chain.length, leafId: leaf.id };
   }
 
-  async function delegate(body: any) {
+  async function delegate(body: any, o: { enforceNarrowing?: boolean } = {}) {
     const leaf = chain[chain.length - 1];
     if (!leaf) throw new HttpError(409, "I hold no authority yet");
     if (typeof body?.subject !== "string" || !isAddress(body.subject)) throw new HttpError(400, "subject must be an address");
     if (typeof body?.subjectName !== "string" || !body.subjectName) throw new HttpError(400, "subjectName is required");
     const scope = parseScopeInput(body.scope);
 
-    if (opts.enforceNarrowing) {
+    if (o.enforceNarrowing ?? opts.enforceNarrowing) {
       const failures = narrows(scope, leaf.scope);
       if (failures.length > 0) {
         throw new HttpError(422, "refusing to widen my own authority", { failures });
@@ -159,6 +163,8 @@ export function createAgent(opts: AgentOptions): Agent {
     return { service: { status: res.status, body: await res.json() } };
   }
 
+  const extraRoutes = new Map<string, (body: any) => Promise<unknown>>();
+
   const server = createServer(async (req, res) => {
     try {
       const url = req.url?.split("?")[0];
@@ -177,6 +183,8 @@ export function createAgent(opts: AgentOptions): Agent {
       if (url === "/accept") return send(res, 200, await accept(body));
       if (url === "/delegate") return send(res, 200, await delegate(body));
       if (url === "/pay") return send(res, 200, await pay(body));
+      const extra = url ? extraRoutes.get(url) : undefined;
+      if (extra) return send(res, 200, await extra(body));
       throw new HttpError(404, "not found");
     } catch (e) {
       if (e instanceof HttpError) return send(res, e.status, { ok: false, error: e.message, ...e.extra });
@@ -188,6 +196,10 @@ export function createAgent(opts: AgentOptions): Agent {
   return {
     server,
     chain: () => chain,
+    delegateTo: (body, o) => delegate(body, o),
+    addRoute: (path, handler) => {
+      extraRoutes.set(path, handler);
+    },
     listen: (port) =>
       new Promise((resolve, reject) => {
         server.once("error", reject);

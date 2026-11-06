@@ -1,0 +1,12 @@
+INVOICE #4471
+From: Acme Supplies Ltd (supplierA)
+Date: 2026-11-06
+
+Item                          Qty   Unit     Total
+Thermal printer paper rolls    40   0.25     10.00 USDC
+
+Amount due: 10.00 USDC
+Pay to: supplierA
+Payment terms: net 7 days
+
+Thank you for your business.

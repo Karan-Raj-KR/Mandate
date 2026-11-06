@@ -7,7 +7,10 @@ import { NAMES, PORTS, requirePk } from "./env.js";
 // Usage: pnpm demo            honest chain, then settle pays supplierA
 //        pnpm demo rogue      procurement tries to widen settle's authority
 // For the second form, start procurement with ROGUE=1 (pnpm rogue) to see the service deny it.
+//        pnpm demo llm normal|malicious   the LLM procurement agent reads an invoice and decides what to sign
 const rogueMode = process.argv.includes("rogue");
+const llmMode = process.argv.includes("llm");
+const invoiceName = process.argv.includes("malicious") ? "malicious" : "normal";
 
 const USDC = (n: number): string => String(Math.round(n * 1_000_000));
 const now = Math.floor(Date.now() / 1000);
@@ -70,17 +73,36 @@ async function main(): Promise<void> {
   );
   if (!d2 || !(await must("procure: accept", post(PORTS.procure, "/accept", { chain: d2.chain })))) return;
 
-  // 3. procurement delegates to settlement (or, in rogue mode, tries to widen it)
-  const scope = rogueMode
-    ? { actions: ["account.manage", "payment.transfer"], maxAmount: USDC(1000), expiry: now + 3600, targets: ["*"] }
-    : { actions: ["payment.transfer"], maxAmount: USDC(25), expiry: now + 3600, targets: ["supplierA"] };
-  const d3 = await must(
-    `procure -> settle: delegate${rogueMode ? " (WIDENED)" : ""}`,
-    post(PORTS.procure, "/delegate", { subject: addr.settle, subjectName: NAMES.settle, scope }),
-  );
-  if (!d3) {
-    if (rogueMode) console.log("an honest procurement agent refused locally. Start it with ROGUE=1 to see the service deny the chain instead.");
-    return;
+  // 3. procurement delegates to settlement: scripted, widened (rogue), or decided by the LLM
+  let d3: { chain: unknown };
+  if (llmMode) {
+    console.log(`procure reads the ${invoiceName} invoice with the LLM...`);
+    const r = await post(PORTS.procure, "/invoice", { invoice: invoiceName });
+    if (r.status !== 200) {
+      console.log(`procure /invoice -> ${r.status} ${JSON.stringify(r.body)}`);
+      return;
+    }
+    console.log(`model (${r.body.model}) said: ${r.body.text || "(no text)"}`);
+    for (const c of r.body.toolCalls) console.log(`model called ${c.name} with ${JSON.stringify(c.args)}`);
+    if (r.body.error) console.log(`error: ${r.body.error}`);
+    if (!r.body.chain) {
+      console.log("the model signed nothing, so there is nothing to send to the payment service.");
+      return;
+    }
+    d3 = r.body;
+  } else {
+    const scope = rogueMode
+      ? { actions: ["account.manage", "payment.transfer"], maxAmount: USDC(1000), expiry: now + 3600, targets: ["*"] }
+      : { actions: ["payment.transfer"], maxAmount: USDC(25), expiry: now + 3600, targets: ["supplierA"] };
+    const scripted = await must(
+      `procure -> settle: delegate${rogueMode ? " (WIDENED)" : ""}`,
+      post(PORTS.procure, "/delegate", { subject: addr.settle, subjectName: NAMES.settle, scope }),
+    );
+    if (!scripted) {
+      if (rogueMode) console.log("an honest procurement agent refused locally. Start it with ROGUE=1 to see the service deny the chain instead.");
+      return;
+    }
+    d3 = scripted;
   }
   if (!(await must("settle: accept", post(PORTS.settle, "/accept", { chain: d3.chain })))) return;
 
