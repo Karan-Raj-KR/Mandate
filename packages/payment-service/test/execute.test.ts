@@ -80,7 +80,7 @@ function buildApp(overrides: Partial<Parameters<typeof createApp>[0]> = {}) {
     cfg,
     verifyLocal,
     checkRevocation,
-    reader: undefined,
+    reader: { read: async () => ({ revoked: false, blockTimestamp: Math.floor(Date.now() / 1000) }) },
     transfer,
     getBalance,
     resolveTarget,

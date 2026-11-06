@@ -6,18 +6,37 @@ import {
   parseRequest,
   toWire,
 } from "@mandate/core";
-import type { Delegation, ExecutionRequest, VerifierConfig } from "@mandate/core";
+import type {
+  Delegation,
+  ExecutionRequest,
+  RegistryReader,
+  Verdict,
+  VerifierConfig,
+} from "@mandate/core";
 import { requestDisplayDigest } from "./digest.js";
 import type { NonceStore } from "./nonces.js";
 import type { TargetResolver } from "./targets.js";
 import type { Transfer } from "./transfer.js";
-import type { CheckRevocationFn, VerifyLocalFn } from "./verifierStub.js";
+
+export type VerifyLocalFn = (
+  chain: Delegation[],
+  req: ExecutionRequest,
+  cfg: VerifierConfig,
+  now: number,
+) => Promise<Verdict>;
+
+export type CheckRevocationFn = (
+  chain: Delegation[],
+  cfg: VerifierConfig,
+  reader: RegistryReader,
+  now: number,
+) => Promise<Verdict>;
 
 export type AppDeps = {
   cfg: VerifierConfig;
   verifyLocal: VerifyLocalFn;
   checkRevocation: CheckRevocationFn;
-  reader: unknown;
+  reader: RegistryReader;
   transfer: Transfer;
   getBalance: () => Promise<bigint>;
   resolveTarget: TargetResolver;
