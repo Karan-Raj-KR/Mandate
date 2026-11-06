@@ -104,3 +104,23 @@ export async function verifyAuthority(
   }
   return rows;
 }
+
+/** Fetch one delegation by its id from any of the trusted writers. Untrusted until verified. */
+export async function fetchById(
+  client: { select: (...a: any[]) => any },
+  id: Hex,
+  trustedOwners: Address[],
+): Promise<Delegation | null> {
+  for (const owner of trustedOwners) {
+    const { entities } = await client.select({ payload: true }).from(DelegationSchema).ownedBy(owner).where(eq("id", id)).fetch();
+    for (const row of entities as { payload: { value: unknown } }[]) {
+      try {
+        const d = parseDelegation(decodePayload(row.payload.value));
+        if (d.id === id) return d;
+      } catch {
+        /* unreadable: ignore */
+      }
+    }
+  }
+  return null;
+}

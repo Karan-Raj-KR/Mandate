@@ -12,7 +12,8 @@
   "dependencies": {
     "@mandate/core": "workspace:*",
     "dotenv": "^16.4.7",
-    "viem": "^2.21.54"
+    "viem": "^2.21.54",
+    "@mandate/arkiv": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

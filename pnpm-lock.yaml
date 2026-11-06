@@ -77,6 +77,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@mandate/arkiv':
+        specifier: workspace:*
+        version: link:../arkiv
       '@mandate/core':
         specifier: workspace:*
         version: link:../core
