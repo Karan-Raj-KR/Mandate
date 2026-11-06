@@ -15,7 +15,7 @@ function stampOf(r: AuthorityRow): { label: string; tone: "ok" | "bad" } {
 }
 
 export default function Registry() {
-  const [root, setRoot] = useState("treasury.dhruv.eth");
+  const [root, setRoot] = useState(MOCK ? "treasury.dhruv.eth" : "latest");
   const [rows, setRows] = useState<AuthorityRow[] | null>(null);
   const [error, setError] = useState("");
   const [f, setF] = useState({ issuer: "", subject: "", actions: [] as string[], depth: "", from: "", to: "" });

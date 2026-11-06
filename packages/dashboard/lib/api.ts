@@ -111,13 +111,21 @@ function reviveRun(r: Run): Run {
 
 // ---------- Authority Explorer ----------
 
+/** maxAmount crosses the wire as a decimal string */
+export function reviveAuthorityRow(r: AuthorityRow): AuthorityRow {
+  return { ...r, d: { ...r.d, scope: { ...r.d.scope, maxAmount: BigInt(r.d.scope.maxAmount as unknown as string) } } };
+}
+
 export type AuthorityRow = { d: Delegation; depth: number; status: "USABLE" | "DENIED"; reasons: string[] };
 
 /** Arkiv query → local structure checks → revocation. Anything unreadable is DENIED, never "unknown". */
 export async function exploreAuthority(root: string, now: number): Promise<AuthorityRow[]> {
   if (!MOCK) {
-    // Not wired yet: needs the Arkiv SDK + schema, and verify/registry exports from @mandate/core.
-    throw new Error("live Arkiv query and revocation read are not wired yet");
+    // The Arkiv query and every check run server side in /api/explore, so the Arkiv key stays off the browser.
+    const r = await fetch(`/api/explore?root=${encodeURIComponent(root)}`, { cache: "no-store" });
+    const body = await r.json();
+    if (!r.ok) throw new Error(body?.error ?? `explore failed (HTTP ${r.status})`);
+    return (body as AuthorityRow[]).map(reviveAuthorityRow);
   }
   const legit = fx.demoChain(now);
   const all = [...legit, fx.demoChain(now, true)[2]];
