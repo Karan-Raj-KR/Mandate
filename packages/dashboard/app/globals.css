@@ -1,20 +1,67 @@
 @import "tailwindcss";
 
-/* Formal palette: off-white / near-black, one accent; status colours always paired with a text label */
+/* "Official documents": cream paper, ink, one red stamp ink, one green approval ink, amber only for pending */
 @theme {
-  --color-paper: #f7f6f2;
-  --color-ink: #16171a;
-  --color-muted: #6b6d73;
-  --color-line: #dcdad3;
-  --color-accent: #1f4fd1;
-  --color-ok: #17803d;
-  --color-bad: #b42318;
-  --color-warn: #a15c07;
-  --font-sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", Consolas, "Liberation Mono", monospace;
+  --color-paper: #f4efe4;
+  --color-sheet: #fbf8f1;
+  --color-ink: #1b1a17;
+  --color-muted: #6e685c;
+  --color-line: #d8cfbd;
+  --color-ok: #1e6b3a;
+  --color-bad: #b3261e;
+  --color-warn: #a86a00;
+  --font-serif: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-inter-tight), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, Consolas, monospace;
 }
 
+html.presenter { font-size: 125%; }
+
 body {
-  background: var(--color-paper);
   color: var(--color-ink);
+  background-color: var(--color-paper);
+  /* very subtle paper grain */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.25 0 0 0 0 0.15 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* a sheet of paper */
+.sheet { background: var(--color-sheet); border: 1px solid var(--color-line); box-shadow: 0 1px 0 #0000000d; }
+
+/* permit card: thin ink border with a perforated top edge */
+.permit { position: relative; background: var(--color-sheet); border: 1px solid var(--color-ink); border-top: 2px dashed var(--color-ink); }
+.permit::before, .permit::after { content: ""; position: absolute; top: -7px; width: 12px; height: 12px; border-radius: 50%; background: var(--color-paper); border: 1px solid var(--color-ink); }
+.permit::before { left: -7px; }
+.permit::after { right: -7px; }
+
+/* rubber stamp */
+.stamp {
+  display: inline-block; transform: rotate(-6deg); padding: .35em .7em; border: 4px double currentColor;
+  font-family: var(--font-mono); font-weight: 800; letter-spacing: .12em; text-transform: uppercase; line-height: 1;
+  /* uneven ink */
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.7' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2.2 2.1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.7' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2.2 2.1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.stamp-thunk { animation: thunk 200ms ease-out both; }
+@keyframes thunk { from { transform: rotate(-6deg) scale(1.15); opacity: 0; } to { transform: rotate(-6deg) scale(1); opacity: 1; } }
+
+/* hand-drawn red underline under the injected lines */
+.scribble {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='6' viewBox='0 0 60 6'%3E%3Cpath d='M0 3 Q 7.5 0 15 3 T 30 3 T 45 3 T 60 3' fill='none' stroke='%23b3261e' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-repeat: repeat-x; background-position: 0 100%; background-size: 60px 6px; padding-bottom: 4px;
+}
+
+/* ruled ledger paper */
+.ruled { background-image: repeating-linear-gradient(to bottom, transparent 0 2.4rem, #c9d6e3 2.4rem calc(2.4rem + 1px)); }
+
+.enter { animation: enter 380ms ease-out both; }
+@keyframes enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.slide-in { animation: slide 450ms ease-out both; }
+@keyframes slide { from { opacity: 0; transform: translateX(-24px) rotate(-1deg); } to { opacity: 1; transform: none; } }
+.draw-down { transform-origin: top; animation: draw 700ms ease-in both; }
+@keyframes draw { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.spill { transform-origin: left; animation: spill 600ms 250ms ease-out both; }
+@keyframes spill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
 }

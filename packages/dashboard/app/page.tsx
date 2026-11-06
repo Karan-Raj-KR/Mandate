@@ -1,146 +1,199 @@
 "use client";
-import { useEffect, useState } from "react";
-import { ChainTree, Decision, PlainText, Timeline } from "@/components/chain";
-import { Badge, Button, Modal, useToast, usdc } from "@/components/ui";
-import { fetchTimeline, MOCK, mock, mockRevokeRoot, mockRun, type Run, type Scenario } from "@/lib/api";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Gatekeeper, InvoiceSheet, MoneyShot, moneyShot, PermitChain, RequestCard, StageColumn, Timeline, Typewriter, Verdict } from "@/components/chain";
+import { Button, Modal, useToast, usdc } from "@/components/ui";
+import { fetchTimeline, MOCK, mock, mockRevokeRoot, mockRun, type Run } from "@/lib/api";
 
-const now = () => Math.floor(Date.now() / 1000);
-type RevokeStep = "idle" | "pending" | "confirmed" | "descendants denied";
+type Pick = 1 | 2 | 3 | "replay" | "stepup";
+type Beat = "invoice" | "output" | "permits" | "revoke" | "request" | "checks" | "stamp";
+const BEATS: Beat[] = ["invoice", "output", "permits", "request", "checks", "stamp"];
+const REVOKE_BEATS: Beat[] = ["invoice", "output", "permits", "revoke", "request", "checks", "stamp"];
+const PAUSE: Partial<Record<Beat, number>> = { output: 1300, permits: 1100, checks: 1500 }; // default 700 ms
 
-export default function ChainView() {
+const SCENARIOS: { k: 1 | 2 | 3; title: string; line: string }[] = [
+  { k: 1, title: "Honest invoice", line: "A normal invoice. Every agent stays inside its permit." },
+  { k: 2, title: "Poisoned invoice", line: "A hidden line in the invoice tricks the AI into granting far more." },
+  { k: 3, title: "Boss revokes", line: "The owner cancels the first permit. Everything below it stops working." },
+];
+
+const CAPTION: Record<Beat, (r: Run, p: Pick) => string> = {
+  invoice: (_, p) => (p === 2 ? "A supplier invoice arrives. It hides an instruction." : "A supplier invoice arrives."),
+  output: (_, p) => (p === 2 ? "The procurement AI reads it and obeys the hidden instruction." : "The procurement agent reads it and proposes a payment."),
+  permits: (_, p) => (p === 2 ? "Each agent passes on a permit. The poisoned one grew instead of shrinking." : "A human gave an agent limited permission. Each agent passes on a smaller one."),
+  revoke: () => "The owner revokes the first permit. Every permit below it dies with it.",
+  request: (r) => `The last agent signs a request: pay ${usdc(r.request.amount)} to ${r.request.target}.`,
+  checks: () => "The payment service checks every permit before any money moves.",
+  stamp: (r) => (r.verdict.ok ? "Approved. The money moved." : "Denied. No money moved."),
+};
+
+const reduced = () => typeof window !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function prepare(p: Pick): Run {
+  if (p !== "replay") mock.revoked.clear();
+  if (p === 1) return mockRun("legit", Math.floor(Date.now() / 1000));
+  if (p === 2) return mockRun("amplify", Math.floor(Date.now() / 1000));
+  if (p === 3) { mockRevokeRoot(); return mockRun("revoke", Math.floor(Date.now() / 1000)); }
+  if (p === "replay") { if (!mock.lastExecuted) mockRun("legit", Math.floor(Date.now() / 1000)); return mockRun("replay", Math.floor(Date.now() / 1000)); }
+  return mockRun("stepup", Math.floor(Date.now() / 1000));
+}
+
+export default function Stage() {
   const toast = useToast();
+  const [pick, setPick] = useState<Pick>(2);
+  const [run, setRun] = useState<Run | null>(null);
+  const [beat, setBeat] = useState(0); // number of beats shown
+  const [playing, setPlaying] = useState(false);
   const [runs, setRuns] = useState<Run[]>([]);
-  const [sel, setSel] = useState<Run | null>(null);
-  const [hero, setHero] = useState<Run | null>(null);
-  const [modal, setModal] = useState<"revoke" | "world" | null>(null);
-  const [revokeStep, setRevokeStep] = useState<RevokeStep>("idle");
+  const [worldOpen, setWorldOpen] = useState(false);
   const [liveError, setLiveError] = useState("");
+  const beats = run?.scenario === "revoke" ? REVOKE_BEATS : BEATS;
+  const shown = (b: Beat) => beats.indexOf(b) < beat;
+  const done = beat >= beats.length;
 
-  const record = (r: Run) => {
-    setRuns((rs) => [r, ...rs]);
-    setSel(r);
-    toast(r.verdict.ok ? `EXECUTED: ${usdc(r.request.amount)} → ${r.request.target}` : `DENIED: ${r.verdict.code}`, r.verdict.ok ? "ok" : "bad");
-  };
-  const run = (s: Scenario, worldApproved = false) => record(mockRun(s, now(), worldApproved));
+  const load = useCallback((r: Run, p: Pick, autoplay: boolean) => {
+    setRun(r); setPick(p); setRuns((rs) => [r, ...rs.filter((x) => x.id !== r.id)]);
+    if (reduced()) { setBeat(r.scenario === "revoke" ? REVOKE_BEATS.length : BEATS.length); setPlaying(false); }
+    else { setBeat(autoplay ? 1 : 0); setPlaying(autoplay); }
+  }, []);
+  const start = useCallback((p: Pick, autoplay = true) => load(prepare(p), p, autoplay), [load]);
+  const reset = () => { mock.revoked.clear(); setRun(null); setBeat(0); setPlaying(false); };
 
-  // Opening state: the amplification attack, already refused.
+  // timed beats
+  useEffect(() => {
+    if (!playing || !run) return;
+    if (beat >= beats.length) { setPlaying(false); return; }
+    const t = setTimeout(() => setBeat((b) => b + 1), PAUSE[beats[beat - 1]] ?? 700);
+    return () => clearTimeout(t);
+  }, [playing, beat, run, beats]);
+
+  // toast when the stamp lands
+  const stamped = useRef<string>("");
+  useEffect(() => {
+    if (run && done && stamped.current !== run.id) {
+      stamped.current = run.id;
+      toast(run.verdict.ok ? `PAID: ${usdc(run.request.amount)} → ${run.request.target}` : `DENIED: ${run.verdict.code}`, run.verdict.ok ? "ok" : "bad");
+    }
+  }, [run, done, toast]);
+
+  // opening state, or ?play=1|2|3 (add &final=1 to jump to the last beat)
   useEffect(() => {
     if (!MOCK) return;
-    const r = mockRun("amplify", now());
-    setHero(r);
-    setRuns([r]);
-    setSel(r);
+    const q = new URLSearchParams(location.search);
+    const p = Number(q.get("play")) as 1 | 2 | 3;
+    const r = prepare([1, 2, 3].includes(p) ? p : 2);
+    if (q.get("final") || !q.get("play")) { load(r, [1, 2, 3].includes(p) ? p : 2, false); setBeat(99); }
+    else load(r, p, true);
+  }, [load]);
+
+  // keyboard: 1/2/3 pick, Space next beat, R reset
+  const keyRef = useRef<(e: KeyboardEvent) => void>(() => {});
+  keyRef.current = (e) => {
+    if (!MOCK || (e.target as HTMLElement).closest("input,textarea,select,dialog")) return;
+    if (e.key === "1" || e.key === "2" || e.key === "3") start(Number(e.key) as 1 | 2 | 3, false);
+    else if (e.key === " ") {
+      e.preventDefault();
+      setPlaying(false);
+      if (!run || done) start(pick, false), setBeat(1);
+      else setBeat((b) => b + 1);
+    } else if (e.key.toLowerCase() === "r") reset();
+  };
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => keyRef.current(e);
+    addEventListener("keydown", h);
+    return () => removeEventListener("keydown", h);
   }, []);
 
-  // Live cross-app demo: poll the service's request timeline.
+  // live cross-app demo: play each new request the service decides
   useEffect(() => {
     if (MOCK) return;
+    let last = "";
     const tick = () =>
       fetchTimeline()
-        .then((rs) => { setRuns(rs); setLiveError(""); setSel((s) => rs.find((x) => x.id === s?.id) ?? rs[0] ?? null); })
+        .then((rs) => {
+          setLiveError("");
+          setRuns(rs);
+          if (rs[0] && rs[0].id !== last) { last = rs[0].id; load(rs[0], rs[0].scenario === "amplify" ? 2 : rs[0].scenario === "revoke" ? 3 : 1, true); }
+        })
         .catch((e: Error) => setLiveError(e.message));
     tick();
     const t = setInterval(tick, 1500);
     return () => clearInterval(t);
-  }, []);
+  }, [load]);
 
-  const revoke = () => {
-    setModal(null);
-    setRevokeStep("pending");
-    toast("Revocation sent (mock tx)", "info");
-    setTimeout(() => {
-      mockRevokeRoot();
-      setRevokeStep("confirmed");
-      setTimeout(() => { run("revoke"); setRevokeStep("descendants denied"); }, 800);
-    }, 1500);
-  };
-
-  const rogueAsk = hero?.request.amount;
-  const authorized = hero?.chain[hero.chain.length - 2]?.scope.maxAmount;
+  const caption = run && beat > 0 ? CAPTION[beats[Math.min(beat, beats.length) - 1]](run, pick) : "Pick a scenario and press Play (or Space).";
+  const shot = run && shown("checks") ? moneyShot(run) : null;
 
   return (
     <div className="space-y-6">
-      {hero && rogueAsk !== undefined && authorized !== undefined && (
-        <p className="text-xl font-semibold leading-snug md:text-2xl">
-          This agent signed a request for {usdc(rogueAsk)}. It was only authorized for {usdc(authorized)}.{" "}
-          <span className="text-bad">The payment service refused.</span>
-        </p>
-      )}
-      {liveError && <p className="rounded border border-bad p-2 text-sm text-bad">Timeline read failed: {liveError}. Nothing is shown as executed until the service answers.</p>}
-
-      <AttackPanel run={run} revokeStep={revokeStep} openModal={setModal} />
-
-      {sel ? (
-        <div className="grid gap-4 lg:grid-cols-3">
-          <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Invoice</h2>
-            <PlainText label="Invoice (plain text)" text={sel.invoice} />
-            <PlainText label={sel.agentOutput.label} text={sel.agentOutput.text} />
-            <p className="text-xs text-muted">Attempted: {sel.attempted}</p>
-          </section>
-          <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Delegation chain</h2>
-            <ChainTree run={sel} />
-          </section>
-          <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Decision</h2>
-            <Decision run={sel} />
-            <h2 className="pt-2 text-sm font-semibold uppercase tracking-wide text-muted">Request timeline</h2>
-            <Timeline runs={runs} selected={sel.id} onSelect={setSel} />
-          </section>
+      {/* scenario bar */}
+      <div className="flex flex-wrap items-stretch gap-2">
+        {SCENARIOS.map((s) => (
+          <button
+            key={s.k} type="button" disabled={!MOCK} onClick={() => start(s.k)}
+            className={`permit min-w-52 flex-1 px-4 py-2 text-left transition-colors disabled:opacity-50 ${pick === s.k ? "!bg-ink text-sheet" : "hover:bg-sheet"}`}
+            aria-pressed={pick === s.k}
+          >
+            <span className="font-mono text-xs opacity-70">{s.k}</span> <span className="font-serif text-lg">{s.title}</span>
+            <span className="block text-xs opacity-80">{s.line}</span>
+          </button>
+        ))}
+        <div className="flex flex-col justify-center gap-1">
+          <Button tone="ink" disabled={!MOCK} onClick={() => start(pick)} className="px-6 text-base">{playing ? "Playing…" : "Play"}</Button>
+          <p className="font-mono text-[0.65rem] text-muted">1 2 3 pick · Space next · R reset</p>
         </div>
-      ) : (
-        <p className="text-sm text-muted">Waiting for the first request…</p>
+      </div>
+
+      {liveError && <p className="sheet border-bad p-2 text-sm text-bad">Can&apos;t read the payment service ({liveError}). Nothing is shown as paid until it answers.</p>}
+      {!MOCK && <p className="text-sm text-muted">Live: start agents from a terminal (<span className="font-mono">pnpm pay 10 supplierA · pnpm attack:amplify · pnpm attack:revoke</span>); each decision plays here.</p>}
+
+      <p className="min-h-[2.5em] font-serif text-2xl leading-snug md:text-3xl" aria-live="polite">{caption}</p>
+
+      {run && (
+        <div className="grid items-start gap-6 md:grid-cols-2 2xl:grid-cols-[1fr_1.3fr_0.85fr_1.05fr_0.95fr]">
+          <StageColumn n={1} title="The invoice">
+            {shown("invoice") && <InvoiceSheet text={run.invoice} />}
+            {shown("output") && <Typewriter label={run.agentOutput.label} text={run.agentOutput.text} />}
+          </StageColumn>
+          <StageColumn n={2} title="The chain of permits">
+            {shown("permits") && <PermitChain run={run} showRevoked={shown("revoke") || (beats === BEATS && shown("permits"))} />}
+          </StageColumn>
+          <StageColumn n={3} title="The request">
+            {shown("request") && <RequestCard run={run} />}
+          </StageColumn>
+          <StageColumn n={4} title="The gatekeeper">
+            {shown("checks") && <Gatekeeper run={run} />}
+          </StageColumn>
+          <StageColumn n={5} title="The verdict">
+            {shown("stamp") && <Verdict run={run} />}
+          </StageColumn>
+        </div>
       )}
 
-      <Modal open={modal === "revoke"} title="Revoke Owner → Operations?" onClose={() => setModal(null)}>
-        <p className="text-sm">One transaction, one bytes32 in the owner&apos;s namespace. Every chain through Operations will be refused; no downstream delegation is touched.</p>
-        <div className="mt-4 flex justify-end gap-2">
-          <Button onClick={() => setModal(null)}>Cancel</Button>
-          <Button tone="bad" onClick={revoke}>Revoke</Button>
+      {shot && <MoneyShot asked={shot.asked} allowed={shot.allowed} />}
+
+      <div className="grid gap-6 md:grid-cols-[1fr_auto]">
+        <div>
+          <h2 className="mb-2 font-serif text-xl">Request log</h2>
+          <Timeline runs={runs} selected={run?.id} onSelect={(r) => { setRun(r); setBeat(99); setPlaying(false); }} />
         </div>
-      </Modal>
-      <Modal open={modal === "world"} title="World ID approval" onClose={() => setModal(null)}>
-        <p className="text-sm">Settlement asks to pay <b>20 USDC → supplierA</b>. That is inside its scope but above $15, so a human must approve this exact request. Approval never widens scope.</p>
-        <div className="mt-4 flex justify-end gap-2">
-          <Button onClick={() => { setModal(null); run("stepup", false); }}>Decline</Button>
-          <Button tone="accent" onClick={() => { setModal(null); run("stepup", true); }}>Approve (mock)</Button>
+        {MOCK && (
+          <div className="space-y-2 text-sm">
+            <h2 className="font-serif text-xl">Also try</h2>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => start("replay")}>Replay the last payment</Button>
+              <Button onClick={() => setWorldOpen(true)}>Pay 20.00 USDC (needs a human)</Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <Modal open={worldOpen} title="Human approval (World ID)" onClose={() => setWorldOpen(false)}>
+        <p className="text-sm">The settlement agent asks to pay <b className="font-mono">20.00 USDC → supplierA</b>. That is inside its permit but above 15.00 USDC, so a verified human must approve this exact request. Approving never widens a permit.</p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button onClick={() => { setWorldOpen(false); load(mockRun("stepup", Math.floor(Date.now() / 1000), false), "stepup", true); }}>Decline</Button>
+          <Button tone="ink" onClick={() => { setWorldOpen(false); load(mockRun("stepup", Math.floor(Date.now() / 1000), true), "stepup", true); }}>Approve (mock)</Button>
         </div>
       </Modal>
     </div>
-  );
-}
-
-function AttackPanel({ run, revokeStep, openModal }: {
-  run: (s: Scenario) => void; revokeStep: RevokeStep; openModal: (m: "revoke" | "world") => void;
-}) {
-  if (!MOCK) {
-    return (
-      <section className="rounded border border-line bg-white p-3 text-sm">
-        <h2 className="font-semibold">Attack controls</h2>
-        <p className="text-xs text-muted">Live mode: run the agents from a terminal; results appear here as the service decides.</p>
-        <pre className="mt-2 font-mono text-xs">pnpm pay 10 supplierA · pnpm attack:amplify · pnpm attack:revoke · pnpm attack:replay</pre>
-      </section>
-    );
-  }
-  const steps: RevokeStep[] = ["pending", "confirmed", "descendants denied"];
-  return (
-    <section className="rounded border border-line bg-white p-3">
-      <h2 className="mb-2 text-sm font-semibold">Attack controls <span className="font-normal text-muted">(fixtures)</span></h2>
-      <div className="flex flex-wrap items-center gap-2">
-        <Button onClick={() => run("legit")}>Legit invoice</Button>
-        <Button onClick={() => run("amplify")}>Prompt-injected delegation</Button>
-        <Button onClick={() => openModal("revoke")} disabled={revokeStep !== "idle"}>Revoke ancestor</Button>
-        <Button onClick={() => { if (!mock.lastExecuted) run("legit"); run("replay"); }}>Replay last request</Button>
-        <Button onClick={() => openModal("world")}>Request above $15</Button>
-        {revokeStep !== "idle" && (
-          <span className="flex items-center gap-1 text-xs">
-            {steps.map((s, i) => (
-              <Badge key={s} tone={steps.indexOf(revokeStep) >= i ? (s === "pending" ? "warn" : "bad") : "info"}>{s.toUpperCase()}</Badge>
-            ))}
-          </span>
-        )}
-      </div>
-    </section>
   );
 }
