@@ -1,4 +1,5 @@
-import "dotenv/config";
+import { config as loadEnv } from "dotenv";
+import { fileURLToPath } from "node:url";
 import { createPublicClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
@@ -9,6 +10,10 @@ import { getRealBalance, getSimulatedBalance } from "./ledger.js";
 import { createNonceStore } from "./nonces.js";
 import { createTargetResolver } from "./targets.js";
 import { createRealTransfer, createSimulatedTransfer } from "./transfer.js";
+
+// pnpm runs this from packages/payment-service, so load the repo-root .env explicitly.
+// dotenv never overrides variables already set in the shell.
+loadEnv({ path: fileURLToPath(new URL("../../../.env", import.meta.url)) });
 
 const cfg = loadVerifierConfig();
 const simulated = process.env.SIMULATE === "1";
