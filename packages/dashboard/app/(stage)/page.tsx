@@ -1,6 +1,6 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Gatekeeper, InvoiceSheet, PermitChain, RequestCard, StageColumn, Timeline, Typewriter, Verdict } from "@/components/chain";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Gatekeeper, InvoiceSheet, PermitChain, RequestCard, Section, Timeline, Typewriter, Verdict } from "@/components/chain";
 import { ApprovalPanel, needsApproval } from "@/components/approval";
 import { RunControls } from "@/components/run-controls";
 import { Moire } from "@/components/story/art";
@@ -29,6 +29,13 @@ const CAPTION: Record<Beat, (r: Run, p: Pick) => string> = {
   checks: () => "The payment service checks every permit before any money moves.",
   stamp: (r) => (r.verdict.ok ? "Approved. The money moved." : "Denied. No money moved."),
 };
+
+const SECTION: Record<Beat, string> = { invoice: "came-in", output: "came-in", permits: "authority", revoke: "authority", request: "authority", checks: "breaker", stamp: "receipt" };
+
+/** Holds its space before its beat, so nothing on the page moves during playback. */
+function Reveal({ on, children }: { on: boolean; children: ReactNode }) {
+  return <div key={String(on)} className={on ? "h-full" : "invisible h-full"}>{children}</div>;
+}
 
 const reduced = () => typeof window !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -69,6 +76,11 @@ export default function Stage() {
     const t = setTimeout(() => setBeat((b) => b + 1), PAUSE[beats[beat - 1]] ?? 700);
     return () => clearTimeout(t);
   }, [playing, beat, run, beats]);
+
+  // follow the story down the page while it plays
+  useEffect(() => {
+    if (playing && beat > 1) document.getElementById(SECTION[beats[Math.min(beat, beats.length) - 1]])?.scrollIntoView({ block: "start" });
+  }, [playing, beat, beats]);
 
   // toast when the stamp lands
   const stamped = useRef<string>("");
@@ -127,12 +139,12 @@ export default function Stage() {
   const caption = run && beat > 0 ? CAPTION[beats[Math.min(beat, beats.length) - 1]](run, pick) : "Pick a scenario and press Play (or Space).";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-12">
       <section className="m-band m-panel relative overflow-hidden">
-        <Moire className="m-spin pointer-events-none absolute -right-[8%] -top-[30%] size-[min(60vw,46rem)] opacity-20" tone="#ffd2c8" />
+        <Moire className="pointer-events-none absolute -right-[8%] -top-[30%] size-[min(60vw,46rem)] opacity-20" tone="#ffd2c8" />
         <h1 className="sr-only">Mandate demo</h1>
-        <p className="m-display relative min-h-[1em] text-[clamp(2.5rem,7vw,7rem)]" aria-live="polite">{caption}</p>
-        <div className="relative mt-10 flex flex-wrap items-end gap-x-10 gap-y-6">
+        <p className="m-display relative h-[4.1em] text-[clamp(2rem,4.6vw,4.25rem)] sm:h-[2.05em]" aria-live="polite">{caption}</p>
+        <div className="relative mt-6 flex flex-wrap items-end gap-x-10 gap-y-6">
           <div role="radiogroup" aria-label="Scenario" className="grid min-w-0 flex-1 basis-full gap-x-8 gap-y-5 md:grid-cols-3 lg:basis-0">
             {SCENARIOS.map((s) => {
               const active = pick === s.k;
@@ -163,37 +175,40 @@ export default function Stage() {
       {!MOCK && run && needsApproval(run) && <ApprovalPanel run={run} />}
 
       {run && (
-        <div className="grid items-start gap-8 lg:grid-cols-2 xl:grid-cols-[1fr_1.35fr_1.1fr] lg:[&>section:last-child]:col-span-2 xl:[&>section:last-child]:col-span-1">
-          <StageColumn title="The invoice">
-            {shown("invoice") && <InvoiceSheet text={run.invoice} />}
-            {shown("output") && <Typewriter label={run.agentOutput.label} text={run.agentOutput.text} />}
-          </StageColumn>
-          <StageColumn title="Authority, hop by hop">
-            {shown("permits") && <PermitChain run={run} showRevoked={shown("revoke") || (beats === BEATS && shown("permits"))} />}
-            {shown("request") && <RequestCard run={run} />}
-          </StageColumn>
-          <StageColumn title="The breaker">
-            {shown("checks") && <Gatekeeper run={run} />}
-            {shown("stamp") && <Verdict run={run} />}
-          </StageColumn>
-        </div>
+        <>
+          <Section id="came-in" title="What came in">
+            <div className="grid grid-cols-1 items-stretch gap-[3px] md:grid-cols-2">
+              <Reveal on={shown("invoice")}><InvoiceSheet text={run.invoice} /></Reveal>
+              <Reveal on={shown("output")}><Typewriter label={run.agentOutput.label} text={run.agentOutput.text} /></Reveal>
+            </div>
+          </Section>
+          <Section id="authority" title="Authority, hop by hop">
+            <Reveal on={shown("permits")}><PermitChain run={run} showRevoked={shown("revoke") || (beats === BEATS && shown("permits"))} /></Reveal>
+            <Reveal on={shown("request")}><RequestCard run={run} /></Reveal>
+          </Section>
+          <Section id="breaker" title="The breaker">
+            <Reveal on={shown("checks")}><Gatekeeper run={run} /></Reveal>
+          </Section>
+          <Section id="receipt" title="The receipt">
+            <Reveal on={shown("stamp")}><Verdict run={run} /></Reveal>
+          </Section>
+        </>
       )}
 
-      <div className="grid gap-6 md:grid-cols-[1fr_auto]">
-        <div>
-          <h2 className="m-serif mb-3 text-4xl">Request log</h2>
-          <Timeline runs={runs} selected={run?.id} onSelect={(r) => { setRun(r); setBeat(99); setPlaying(false); }} />
-        </div>
-        {MOCK && (
-          <div className="space-y-2 text-sm">
-            <h2 className="m-serif text-4xl">Also try</h2>
-            <div className="flex flex-wrap gap-2">
+      <section>
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <h2 className="m-serif text-4xl">Request log</h2>
+          {MOCK && (
+            <div className="flex flex-wrap gap-[3px]">
               <Button onClick={() => start("replay")}>Replay the last payment</Button>
               <Button onClick={() => setWorldOpen(true)}>Pay 20.00 USDC (needs a human)</Button>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+        <Timeline runs={runs} selected={run?.id} onSelect={(r) => { setRun(r); setBeat(99); setPlaying(false); }} />
+      </section>
+
+      {playing && <p aria-hidden className="enter fixed inset-x-[var(--frame)] bottom-[var(--frame)] z-40 bg-black/90 px-6 py-4 text-center text-xl font-medium tracking-tight">{caption}</p>}
 
       <Modal open={worldOpen} title="Human approval (World ID)" onClose={() => setWorldOpen(false)}>
         <p className="text-sm">The settlement agent asks to pay <b className="font-mono">20.00 USDC → supplierA</b>. That is inside its permit but above 15.00 USDC, so a verified human must approve this exact request. Approving never widens a permit.</p>

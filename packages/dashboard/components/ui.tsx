@@ -94,6 +94,6 @@ export function Modal({ open, title, onClose, children }: { open: boolean; title
 }
 
 export function Button({ tone = "plain", ...p }: React.ButtonHTMLAttributes<HTMLButtonElement> & { tone?: "plain" | "ink" | "bad" }) {
-  const c = { plain: "border-transparent bg-white/8 hover:bg-white/16", ink: "border-fg bg-fg text-[#0b0909] hover:bg-[#0b0909] hover:text-fg", bad: "border-bad bg-bad text-bg" }[tone];
+  const c = { plain: "border-transparent bg-white/8 hover:bg-white/16", ink: "border-fg bg-fg text-[#0b0909] hover:bg-[#ffd0c8] hover:border-[#ffd0c8]", bad: "border-bad bg-bad text-bg" }[tone];
   return <button type="button" {...p} className={`min-h-11 border px-4 py-2 text-sm font-medium transition-[background,border-color,color,transform] duration-300 active:scale-[0.97] disabled:opacity-40 ${c} ${p.className ?? ""}`} />;
 }

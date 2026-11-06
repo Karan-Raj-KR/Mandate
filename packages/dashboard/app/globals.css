@@ -16,7 +16,9 @@
   --font-mono: var(--font-geist-mono), monospace;
 }
 
-:root { --frame: clamp(8px, 2.6vw, 40px); }
+:root { --frame: clamp(8px, 2.6vw, 40px); --frame-r: 24px; }
+/* the thick showcase frame belongs to the story; working screens need the room */
+:root:not(:has(.story)) { --frame: 8px; --frame-r: 12px; }
 html { scroll-behavior: smooth; }
 html.presenter { font-size: 125%; }
 body { background: var(--color-bg); color: var(--color-fg); overflow-x: clip; letter-spacing: -0.01em; }
@@ -30,13 +32,12 @@ body { background: var(--color-bg); color: var(--color-fg); overflow-x: clip; le
 .m-frame {
   position: fixed; inset: -60px; z-index: 50; pointer-events: none;
   border: calc(60px + var(--frame)) solid transparent;
-  border-radius: calc(84px + var(--frame));
+  border-radius: calc(60px + var(--frame) + var(--frame-r));
   background: #0a0606;
   background-clip: border-box;
   mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0) border-box;
   mask-composite: exclude;
 }
-/* only the glow breathes: the ring itself stays opaque so scrolled content never shows through */
 .m-frame::before {
   content: ""; position: absolute; inset: calc(-60px - var(--frame));
   background:
@@ -44,29 +45,28 @@ body { background: var(--color-bg); color: var(--color-fg); overflow-x: clip; le
     radial-gradient(38% 34% at 50% 96%, #ff3b24, transparent),
     radial-gradient(30% 60% at 2% 50%, #a3120c, transparent),
     radial-gradient(30% 60% at 98% 50%, #a3120c, transparent);
-  animation: m-breathe 7s ease-in-out infinite alternate;
 }
-.m-edge { position: fixed; inset: var(--frame); z-index: 50; pointer-events: none; border: 1px solid rgb(255 130 110 / 0.28); border-radius: 24px; }
+.m-edge { position: fixed; inset: var(--frame); z-index: 50; pointer-events: none; border: 1px solid rgb(255 130 110 / 0.28); border-radius: var(--frame-r); }
 
-.m-band { margin-inline: calc(-1 * clamp(1rem, 4vw, 4rem)); padding: calc(var(--frame) + 6rem) clamp(1rem, 4vw, 4rem) 2.5rem; }
+.m-band { margin-inline: calc(-1 * clamp(1rem, 4vw, 4rem)); padding: calc(var(--frame) + 4.25rem) clamp(1rem, 4vw, 4rem) 2rem; }
 .m-panel { background: radial-gradient(95% 120% at 12% 0%, #d9231a 0%, #a3120c 36%, #420808 70%, #120c0b 100%); }
 .m-hero { background: radial-gradient(85% 80% at 50% 42%, #e5261a 0%, #b5140d 42%, #560a0a 76%, #0b0909 100%); }
 .m-glow { background: radial-gradient(50% 100% at 50% 100%, #ff7a5c 0%, #e8241a 38%, #700f0f 72%, transparent 100%); }
 
 .m-btn { display: inline-flex; align-items: center; justify-content: center; gap: .6em; min-height: 48px; padding: 0 1.5rem; background: var(--color-fg); color: #0b0909; font-weight: 500; transition: transform 300ms cubic-bezier(.16,1,.3,1), background 300ms ease, color 300ms ease; }
-.m-btn:hover:not(:disabled) { background: #0b0909; color: var(--color-fg); }
+.m-btn:hover:not(:disabled) { background: #ffd0c8; }
 .m-btn:active:not(:disabled) { transform: scale(0.97); }
-a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid #ffb4a8; outline-offset: 3px; }
+nav a:focus-visible, nav button:focus-visible { outline: none; color: #ffb4a8; }
+main a:focus-visible, main button:focus-visible, footer a:focus-visible { outline: 1px solid rgb(255 255 255 / .6); outline-offset: 4px; }
 
 .m-lift { transition: transform 500ms cubic-bezier(.16,1,.3,1), border-color 500ms ease; }
-.m-lift:hover { transform: translateX(6px); }
-.m-spin { animation: m-spin 90s linear infinite; }
+.m-lift:hover { transform: translateY(-3px); }
 .m-float > * { animation: m-float 6s ease-in-out infinite alternate; }
 .m-float > :nth-child(2) { animation-delay: -2s; }
 .m-float > :nth-child(3) { animation-delay: -4s; }
-@keyframes m-spin { to { rotate: 360deg; } }
+/* short screens: the hero stack drops to its stubs so it never climbs over the wordmark */
+@media (max-height: 760px) { .m-float .ticket-body { display: none; } .m-float { transform-origin: bottom; } }
 @keyframes m-float { from { translate: 0 -5px; } to { translate: 0 5px; } }
-@keyframes m-breathe { from { opacity: 0.82; } to { opacity: 1; } }
 
 .panel, .permit { background: var(--color-panel); }
 
@@ -76,18 +76,22 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px soli
 .paper-torn { mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 18px 100%; }
 
 /* rubber stamp */
-.stamp-ink { display: inline-block; padding: .12em .4em; border: 3px solid currentColor; font-weight: 700; letter-spacing: .04em; line-height: 1.1; rotate: -7deg; mix-blend-mode: multiply; animation: thunk 420ms 200ms cubic-bezier(.3,1.4,.5,1) both; }
+.stamp-ink { display: table; padding: .12em .4em; border: 3px solid currentColor; font-weight: 700; letter-spacing: .04em; line-height: 1.1; rotate: -7deg; mix-blend-mode: multiply; animation: thunk 420ms 200ms cubic-bezier(.3,1.4,.5,1) both; }
 @keyframes thunk { from { opacity: 0; scale: 1.9; } to { opacity: .92; scale: 1; } }
 
 /* a permit: perforated ticket, notched at the tear line */
-.ticket { --stub: 72px; background: #1e1715; mask: radial-gradient(circle 8px at 0 var(--stub), #0000 97%, #000), radial-gradient(circle 8px at 100% var(--stub), #0000 97%, #000); mask-composite: intersect; }
+.ticket { --stub: 72px; background: #1c1513; mask: radial-gradient(circle 8px at 0 var(--stub), #0000 97%, #000), radial-gradient(circle 8px at 100% var(--stub), #0000 97%, #000); mask-composite: intersect; }
+.ticket-bar { --stub: 100px; }
 .ticket-body { border-top: 2px dashed rgb(255 255 255 / 0.16); margin-inline: 12px; padding-inline: 4px; }
-.ticket-grew { --color-fg: #fff; --color-muted: rgb(255 255 255 / .85); --color-bad: #fff; --color-ok: #fff; --color-warn: #ffe2a8; background: linear-gradient(90deg, var(--color-brand) var(--limit, 100%), rgb(255 255 255 / .55) var(--limit, 100%) calc(var(--limit, 100%) + 2px), #8f0f0a calc(var(--limit, 100%) + 2px)); color: #fff; }
+.ticket-owner { --stub: 100px; --color-fg: #141110; --color-muted: #5d5550; --color-ok: #0b7a3c; --color-warn: #7d5200; background: #e8e4dd; color: #141110; }
+.ticket-owner .ticket-body { border-top-color: #bdb5ab; }
+.bar-fill { transform-origin: left; animation: spill 900ms 300ms cubic-bezier(.16,1,.3,1) both; }
+.tick { background: #ff5a40; }
+.ticket-grew .tick { background: #000; }
+.ticket-grew { --color-fg: #fff; --color-muted: rgb(255 255 255 / .85); --color-bad: #fff; --color-ok: #fff; --color-warn: #ffe2a8; background: var(--color-brand); color: #fff; }
 .ticket-grew .ticket-body { border-top-color: rgb(255 255 255 / .4); }
 .ticket-dead { background: repeating-linear-gradient(-45deg, #171211 0 8px, #241816 8px 9px); }
 .ticket-dead .ticket-amount { text-decoration: line-through; text-decoration-color: var(--color-bad); }
-.narrow { animation: narrow 900ms cubic-bezier(.16,1,.3,1) both; }
-@keyframes narrow { from { width: var(--from); opacity: 0; } 30% { opacity: 1; } }
 
 /* breaker switch */
 .switch { position: relative; display: block; width: 2.5rem; height: 1.25rem; background: #0b0909; }
