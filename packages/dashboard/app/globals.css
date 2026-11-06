@@ -36,6 +36,10 @@ body { background: var(--color-bg); color: var(--color-fg); }
 .spill { transform-origin: left; animation: spill 600ms 250ms ease-out both; }
 @keyframes spill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
+/* current pulse travelling down a wire, once */
+.pulse { position: absolute; left: 50%; width: 10px; height: 26px; margin-left: -5px; border-radius: 9999px; background: var(--color-lime); box-shadow: 0 0 14px var(--color-lime); opacity: 0; animation: travel 650ms ease-in both; }
+@keyframes travel { 0% { top: 0; opacity: 0; } 15% { opacity: 1; } 100% { top: calc(100% - 26px); opacity: 0; } }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

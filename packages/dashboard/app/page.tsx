@@ -8,7 +8,8 @@ type Pick = 1 | 2 | 3 | "replay" | "stepup";
 type Beat = "invoice" | "output" | "permits" | "revoke" | "request" | "checks" | "stamp";
 const BEATS: Beat[] = ["invoice", "output", "permits", "request", "checks", "stamp"];
 const REVOKE_BEATS: Beat[] = ["invoice", "output", "permits", "revoke", "request", "checks", "stamp"];
-const PAUSE: Partial<Record<Beat, number>> = { output: 1300, permits: 1100, checks: 1500 }; // default 700 ms
+// default 700 ms; permits travel 650 ms per hop, checks tick 700 ms apart (6 checks)
+const PAUSE: Partial<Record<Beat, number>> = { output: 1300, permits: 2200, checks: 4500 };
 
 const SCENARIOS: { k: 1 | 2 | 3; title: string; line: string }[] = [
   { k: 1, title: "Honest invoice", line: "A normal invoice. Every agent stays inside its permit." },

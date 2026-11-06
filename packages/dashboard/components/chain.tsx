@@ -85,9 +85,14 @@ function Field({ k, bad, children }: { k: string; bad?: boolean; children: React
 }
 
 /** One vertical wire segment. Authority is current: thinner = less authority. */
-function Wire({ px, state }: { px: number; state: "live" | "grew" | "dead" }) {
+function Wire({ px, state, pulseAt }: { px: number; state: "live" | "grew" | "dead"; pulseAt?: number }) {
   const color = { live: "bg-lime", grew: "bg-bad", dead: "bg-line" }[state];
-  return <span aria-hidden className={`absolute left-1/2 top-0 bottom-0 -translate-x-1/2 rounded-full ${color}`} style={{ width: px }} />;
+  return (
+    <>
+      <span aria-hidden className={`absolute left-1/2 top-0 bottom-0 -translate-x-1/2 rounded-full transition-colors duration-700 ${color}`} style={{ width: px }} />
+      {pulseAt !== undefined && state === "live" && <span aria-hidden className="pulse" style={delay(pulseAt)} />}
+    </>
+  );
 }
 
 function Node({ label, state }: { label: string; state: "live" | "grew" | "dead" }) {
@@ -123,9 +128,9 @@ export function PermitChain({ run, showRevoked }: { run: Run; showRevoked: boole
         const dead = firstRevoked >= 0 && i >= firstRevoked;
         const state = dead ? "dead" : failures.length ? "grew" : "live";
         return (
-          <div key={d.id} className="enter grid grid-cols-[3rem_1fr] gap-4" style={delay(i * 260)}>
+          <div key={d.id} className="enter grid grid-cols-[3rem_1fr] gap-4" style={delay(i * 650)}>
             <div className="relative flex flex-col items-center">
-              <Wire px={px} state={state} />
+              <Wire px={px} state={state} pulseAt={i * 650} />
               <span className="h-6" />
               <Node label={d.subjectName.slice(0, 2).toUpperCase()} state={state} />
             </div>
@@ -233,7 +238,7 @@ export function Gatekeeper({ run }: { run: Run }) {
         {CHECKS.map((c, i) => {
           const [mark, color] = MARK[st[i]];
           return (
-            <li key={c.title} className="enter grid grid-cols-[1.25rem_1fr] gap-x-2" style={delay(i * 180)}>
+            <li key={c.title} className="enter grid grid-cols-[1.25rem_1fr] gap-x-2" style={delay(i * 700)}>
               <span className={`font-mono text-base font-bold leading-5 ${color}`} aria-hidden>{mark}</span>
               <div>
                 <p className="flex flex-wrap items-center gap-2 text-sm">{c.title} <span className={`rounded-full border border-current/50 px-1.5 font-mono text-[0.6rem] uppercase ${color}`}>{st[i]}</span></p>
