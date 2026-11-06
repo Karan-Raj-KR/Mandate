@@ -24,7 +24,7 @@ export function StageColumn({ n, title, children }: { n: number; title: string; 
 export function PlainText({ label, text }: { label: string; text: string }) {
   return (
     <section className="panel">
-      <h3 className="border-b border-line px-3 py-2 font-mono text-[0.7rem] uppercase tracking-wider text-muted">{label}</h3>
+      <h3 className={`border-b border-line px-3 py-2 font-mono text-[0.7rem] uppercase tracking-wider ${label === "Rogue-agent fixture" ? "text-bad" : label === "Model output" ? "text-lime" : "text-muted"}`}>{label}</h3>
       <pre className="overflow-x-auto whitespace-pre-wrap break-words p-3 font-mono text-xs leading-relaxed">{text}</pre>
     </section>
   );
@@ -54,6 +54,7 @@ export function InvoiceSheet({ text }: { text: string }) {
       <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-relaxed">
         {lines.map(({ line, flagged }, i) => (
           <span key={i} className="block">
+            {flagged && !lines[i - 1]?.flagged && <span className="mb-1 mt-2 block font-sans text-[0.65rem] font-semibold uppercase tracking-wider text-bad">↓ injected instruction</span>}
             <span className={flagged ? "injected text-bad" : ""}>{line || " "}</span>
           </span>
         ))}
@@ -235,7 +236,7 @@ export function Gatekeeper({ run }: { run: Run }) {
             <li key={c.title} className="enter grid grid-cols-[1.25rem_1fr] gap-x-2" style={delay(i * 180)}>
               <span className={`font-mono text-base font-bold leading-5 ${color}`} aria-hidden>{mark}</span>
               <div>
-                <p className="text-sm">{c.title} <span className={`ml-1 font-mono text-[0.65rem] uppercase ${color}`}>{st[i]}</span></p>
+                <p className="flex flex-wrap items-center gap-2 text-sm">{c.title} <span className={`rounded-full border border-current/50 px-1.5 font-mono text-[0.6rem] uppercase ${color}`}>{st[i]}</span></p>
                 <p className="font-mono text-[0.65rem] text-muted">{c.rule}</p>
                 {st[i] === "fail" && !v.ok && (
                   <div className="mt-1 font-mono text-[0.7rem] text-bad">
