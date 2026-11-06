@@ -118,3 +118,33 @@ describe("history labels", () => {
     expect(run.stepUp).toEqual({ required: true, approved: "demo-bypass" });
   });
 });
+
+describe("simulated payments", () => {
+  it("are flagged so the dashboard never links a fake tx hash to Etherscan", async () => {
+    const { app } = build({ ok: true }); // build() runs the service with simulated: true
+    const r = await request(app).post("/execute").send({ chain, request: req(30) });
+    expect(r.status).toBe(200);
+    expect(r.body.simulated).toBe(true);
+    await vi.waitFor(async () => expect((await request(app).get("/requests")).body).toHaveLength(1));
+    const [run] = (await request(app).get("/requests")).body;
+    expect(run.simulated).toBe(true);
+    expect(run.mock).toBe(false); // the checks were real, only the transfer was not
+  });
+
+  it("a real transfer is not flagged", async () => {
+    const runs = createRunStore();
+    await runs.add({ chain: chain as any, request: req(31) as any, verdict: { ok: true }, now: 1, txHash: "0xabc" as Hex });
+    expect((runs.list() as any[])[0].simulated).toBe(false);
+  });
+});
+
+describe("simulated transfer", () => {
+  it("returns a 32-byte hash and debits the in-memory ledger", async () => {
+    const { createSimulatedTransfer } = await import("../src/transfer.js");
+    const { getSimulatedBalance } = await import("../src/ledger.js");
+    const before = getSimulatedBalance();
+    const hash = await createSimulatedTransfer()(A as Address, 5n);
+    expect(hash).toMatch(/^0x[0-9a-f]{64}$/);
+    expect(getSimulatedBalance()).toBe(before - 5n);
+  });
+});

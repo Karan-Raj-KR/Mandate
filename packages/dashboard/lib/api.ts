@@ -15,6 +15,8 @@ export type Run = {
   at: number;
   scenario: Scenario;
   mock: boolean;
+  /** payment was simulated by the service (demo mode): real checks, no on-chain transfer */
+  simulated?: boolean;
   attempted: string;
   invoice: string;
   agentOutput: { label: "Model output" | "Rogue-agent fixture" | "Scripted fixture"; text: string };

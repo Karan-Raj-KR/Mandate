@@ -36,6 +36,8 @@ export type RunInput = {
   txHash?: Hex;
   /** how the step-up approval was given, if it was */
   approval?: "world-id" | "demo-bypass";
+  /** the money movement was simulated (DEMO_MODE): the tx hash is not on any chain */
+  simulated?: boolean;
   now: number;
   /** Per-hop revocation status for display. Best effort: a failure shows hops as not revoked,
    *  which is harmless because the decision itself was already made by checkRevocation. */
@@ -51,7 +53,7 @@ export type RunStore = {
 export function createRunStore(max = 50): RunStore {
   const runs: Record<string, unknown>[] = [];
   return {
-    async add({ chain, request, verdict, txHash, now, statusOf, approval }) {
+    async add({ chain, request, verdict, txHash, now, statusOf, approval, simulated }) {
       let revoked = chain.map(() => false);
       try {
         if (statusOf) revoked = await statusOf(chain);
@@ -72,6 +74,7 @@ export function createRunStore(max = 50): RunStore {
         at: now,
         scenario,
         mock: false,
+        simulated: simulated === true,
         attempted,
         invoice: "",
         agentOutput: {

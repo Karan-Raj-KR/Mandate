@@ -55,7 +55,8 @@ Needs Node 22+, pnpm, and Foundry for the contracts. Copy `.env.example` to `.en
 pnpm install
 pnpm test                                   # all TypeScript tests
 cd packages/contracts && forge test         # registry tests
-pnpm service                                # payment service on :4000
+pnpm service                                # payment service on :4000 (real USDC)
+pnpm service:demo                           # no-money demo: simulated payments + labelled World ID bypass
 pnpm seed && pnpm pay 0.5 supplierA         # valid execution
 pnpm attack:amplify                         # denied, balance unchanged
 pnpm attack:replay                          # one debit, second send REPLAY

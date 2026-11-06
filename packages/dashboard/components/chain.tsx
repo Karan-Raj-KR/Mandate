@@ -314,7 +314,9 @@ export function Verdict({ run }: { run: Run }) {
         <>
           <p className="font-display text-5xl font-bold text-lime">EXECUTED</p>
           <p className="text-sm">Paid {usdc(r.amount)} to {r.target}.</p>
-          {run.txHash && (run.mock
+          {run.txHash && (run.simulated
+            ? <p className="text-xs">Receipt <span className="font-mono">{short(run.txHash)}</span> <Badge tone="warn">Simulated payment · no on-chain transfer</Badge></p>
+            : run.mock
             ? <p className="text-xs">Receipt <span className="font-mono">{short(run.txHash)}</span> <Badge tone="warn">Mock tx · no Etherscan link</Badge></p>
             : <p className="text-xs">Receipt <Hash value={run.txHash} /> · <a className="text-lime underline" href={`${ETHERSCAN}/tx/${run.txHash}`} target="_blank" rel="noreferrer">View on Sepolia Etherscan</a></p>)}
         </>

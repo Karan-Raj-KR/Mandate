@@ -87,7 +87,7 @@ export function createApp(deps: AppDeps): Express {
     let approval: ApprovalMethod | undefined;
     const record = (verdict: Verdict, txHash?: Hex): void => {
       if (!deps.runs) return;
-      deps.runs.add({ chain, request, verdict, txHash, now, statusOf: deps.statusOf, approval }).catch(() => {});
+      deps.runs.add({ chain, request, verdict, txHash, now, statusOf: deps.statusOf, approval, simulated: deps.simulated }).catch(() => {});
     };
 
     const verdict = await deps.verifyLocal(chain, request, deps.cfg, now);

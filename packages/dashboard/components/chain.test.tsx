@@ -38,6 +38,14 @@ describe("stage rendering", () => {
     expect(html).toContain("Mock tx");
   });
 
+  it("simulated payments from the live service show no Etherscan link but keep the real-check badges", () => {
+    const run = { ...mockRun("legit", now), mock: false, simulated: true };
+    const html = renderToStaticMarkup(<Verdict run={run} />);
+    expect(html).toContain("Simulated payment");
+    expect(html).not.toContain("etherscan.io");
+    expect(checkStatuses({ ok: true }, run.mock)).toEqual(Array(6).fill("pass"));
+  });
+
   it("checks after the first failure are not reached; mock never claims signatures passed", () => {
     const amp = mockRun("amplify", now);
     expect(checkStatuses(amp.verdict, true)).toEqual(["skipped (mock)", "fail", "skipped (mock)", "not reached", "not reached", "not reached"]);

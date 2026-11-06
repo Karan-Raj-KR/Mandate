@@ -18,7 +18,11 @@ import { createRealTransfer, createSimulatedTransfer } from "./transfer.js";
 loadEnv({ path: fileURLToPath(new URL("../../../.env", import.meta.url)) });
 
 const cfg = loadVerifierConfig();
-const simulated = process.env.SIMULATE === "1";
+// DEMO_MODE=1 is the no-money demo: simulated payments plus the labelled World ID bypass.
+// Each can still be set on its own (SIMULATE=1, WORLD_DEMO_BYPASS=1).
+const demoMode = process.env.DEMO_MODE === "1";
+const simulated = demoMode || process.env.SIMULATE === "1";
+if (simulated) console.warn("⚠ simulated payments: no USDC moves and tx hashes are not on any chain. Every check still runs for real.");
 
 // Revocation is always checked against the real registry — SIMULATE only
 // fakes the money movement (transfer/balance), never the security checks.
@@ -54,7 +58,7 @@ const worldRp = process.env.WORLD_RP_ID;
 const worldKey = process.env.WORLD_SIGNING_KEY;
 const worldEnv = process.env.WORLD_ENV === "staging" ? "staging" : "production";
 const worldAction = process.env.WORLD_ACTION ?? "approve-payment";
-const demoBypass = process.env.WORLD_DEMO_BYPASS === "1";
+const demoBypass = demoMode || process.env.WORLD_DEMO_BYPASS === "1";
 if (demoBypass) console.warn("⚠ WORLD_DEMO_BYPASS=1: step-up can be approved WITHOUT World ID. Demo only.");
 const realVerifier = worldRp ? createWorldVerifier({ rpId: worldRp, environment: worldEnv }) : undefined;
 const approvalVerifier = demoBypass ? withDemoBypass(realVerifier) : realVerifier;
@@ -67,7 +71,16 @@ const app = createApp({
   reader,
   transfer,
   getBalance,
-  resolveTarget: createTargetResolver(),
+  // Simulated payments never touch the address, so an UNSET supplier gets a placeholder. A set but malformed one still denies.
+  resolveTarget: createTargetResolver(
+    simulated
+      ? {
+          ...process.env,
+          SUPPLIER_A: process.env.SUPPLIER_A || "0x00000000000000000000000000000000000a11ce",
+          SUPPLIER_B: process.env.SUPPLIER_B || "0x0000000000000000000000000000000000000b0b",
+        }
+      : process.env,
+  ),
   nonceStore: createNonceStore(),
   simulated,
   runs: createRunStore(),
