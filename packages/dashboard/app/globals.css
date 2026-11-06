@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+/* Formal palette: off-white / near-black, one accent; status colours always paired with a text label */
+@theme {
+  --color-paper: #f7f6f2;
+  --color-ink: #16171a;
+  --color-muted: #6b6d73;
+  --color-line: #dcdad3;
+  --color-accent: #1f4fd1;
+  --color-ok: #17803d;
+  --color-bad: #b42318;
+  --color-warn: #a15c07;
+  --font-sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Consolas, "Liberation Mono", monospace;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
