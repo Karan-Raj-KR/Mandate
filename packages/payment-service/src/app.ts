@@ -18,7 +18,7 @@ import { requestDisplayDigest } from "./digest.js";
 import type { NonceStore } from "./nonces.js";
 import type { RunStore } from "./requests.js";
 import { approvalSignal } from "./worldid.js";
-import type { ApprovalVerifier } from "./worldid.js";
+import type { ApprovalMethod, ApprovalVerifier } from "./worldid.js";
 import type { TargetResolver } from "./targets.js";
 import type { Transfer } from "./transfer.js";
 
@@ -53,6 +53,8 @@ export type AppDeps = {
   approvalVerifier?: ApprovalVerifier;
   /** Signs the rp_context for a browser approval. Absent means the approval endpoint is disabled. */
   worldContext?: () => unknown;
+  /** Reported to the dashboard so it knows whether to offer the demo bypass button. */
+  demoBypass?: boolean;
   statusOf?: (chain: Delegation[]) => Promise<boolean[]>;
   dashboardOrigin?: string;
 };
@@ -82,9 +84,10 @@ export function createApp(deps: AppDeps): Express {
     log("✓", "SCHEMA", "chain and request parsed");
 
     // Recorded after the response is sent; a failure here must never affect the response.
+    let approval: ApprovalMethod | undefined;
     const record = (verdict: Verdict, txHash?: Hex): void => {
       if (!deps.runs) return;
-      deps.runs.add({ chain, request, verdict, txHash, now, statusOf: deps.statusOf }).catch(() => {});
+      deps.runs.add({ chain, request, verdict, txHash, now, statusOf: deps.statusOf, approval }).catch(() => {});
     };
 
     const verdict = await deps.verifyLocal(chain, request, deps.cfg, now);
@@ -104,7 +107,8 @@ export function createApp(deps: AppDeps): Express {
       if (proof !== undefined && deps.approvalVerifier) {
         const approved = await deps.approvalVerifier(proof, approvalSignal(request, deps.cfg));
         if (approved.ok) {
-          log("✓", "STEP_UP", "World ID approval bound to this request");
+          approval = approved.method;
+          log("✓", "STEP_UP", approved.method === "demo-bypass" ? "DEMO BYPASS (no World ID)" : "World ID approval bound to this request");
           detail = "";
         } else {
           detail = approved.detail;
@@ -158,6 +162,7 @@ export function createApp(deps: AppDeps): Express {
           amount: request.amount,
           target: request.target,
           requestDigest: requestDisplayDigest(request),
+          ...(approval ? { approval } : {}),
           chainIds: chain.map((d) => d.id),
           ...(deps.simulated ? { simulated: true } : {}),
         }),
@@ -176,6 +181,12 @@ export function createApp(deps: AppDeps): Express {
     res.setHeader("access-control-allow-origin", deps.dashboardOrigin ?? "http://localhost:3000");
     res.setHeader("vary", "origin");
     res.status(200).json(deps.runs ? deps.runs.list() : []);
+  });
+
+  // Lets the dashboard know whether the demo bypass is on. Read only.
+  app.get("/world/config", (_req: Request, res: Response) => {
+    res.setHeader("access-control-allow-origin", deps.dashboardOrigin ?? "http://localhost:3000");
+    res.status(200).json({ bypass: deps.demoBypass === true, worldId: deps.worldContext !== undefined });
   });
 
   // Starts a browser approval: returns the signal the proof must be bound to, plus the signed rp_context.

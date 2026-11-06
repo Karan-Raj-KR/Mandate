@@ -9,7 +9,7 @@ import { createApp } from "./app.js";
 import { getRealBalance, getSimulatedBalance } from "./ledger.js";
 import { createNonceStore } from "./nonces.js";
 import { createRunStore } from "./requests.js";
-import { createRpContextSigner, createWorldVerifier } from "./worldid.js";
+import { createRpContextSigner, createWorldVerifier, withDemoBypass } from "./worldid.js";
 import { createTargetResolver } from "./targets.js";
 import { createRealTransfer, createSimulatedTransfer } from "./transfer.js";
 
@@ -54,7 +54,10 @@ const worldRp = process.env.WORLD_RP_ID;
 const worldKey = process.env.WORLD_SIGNING_KEY;
 const worldEnv = process.env.WORLD_ENV === "staging" ? "staging" : "production";
 const worldAction = process.env.WORLD_ACTION ?? "approve-payment";
-const approvalVerifier = worldRp ? createWorldVerifier({ rpId: worldRp, environment: worldEnv }) : undefined;
+const demoBypass = process.env.WORLD_DEMO_BYPASS === "1";
+if (demoBypass) console.warn("⚠ WORLD_DEMO_BYPASS=1: step-up can be approved WITHOUT World ID. Demo only.");
+const realVerifier = worldRp ? createWorldVerifier({ rpId: worldRp, environment: worldEnv }) : undefined;
+const approvalVerifier = demoBypass ? withDemoBypass(realVerifier) : realVerifier;
 const worldContext = worldRp && worldKey ? createRpContextSigner({ signingKeyHex: worldKey, action: worldAction, rpId: worldRp }) : undefined;
 
 const app = createApp({
@@ -70,6 +73,7 @@ const app = createApp({
   runs: createRunStore(),
   approvalVerifier,
   worldContext,
+  demoBypass,
   statusOf,
   dashboardOrigin: process.env.DASHBOARD_ORIGIN,
 });

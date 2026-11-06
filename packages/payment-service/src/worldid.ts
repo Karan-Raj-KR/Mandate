@@ -16,7 +16,8 @@ import type { ExecutionRequest, VerifierConfig } from "@mandate/core";
 //  - hashSignal and signRequest come from the MIT licensed @worldcoin/idkit-core package. The docs do not
 //    say how signal_hash is computed, so we use the SDK's own function instead of re-implementing it.
 
-export type ApprovalVerdict = { ok: true } | { ok: false; detail: string };
+export type ApprovalMethod = "world-id" | "demo-bypass";
+export type ApprovalVerdict = { ok: true; method: ApprovalMethod } | { ok: false; detail: string };
 export type ApprovalVerifier = (proof: unknown, signal: Hex) => Promise<ApprovalVerdict>;
 
 /** The value an approval must be bound to: the canonical EIP-712 digest of the signed request. */
@@ -77,7 +78,7 @@ export function createWorldVerifier(opts: {
       const body = (await res.json()) as { success?: unknown; environment?: unknown };
       if (body.success !== true) return deny("World ID did not verify the proof");
       if (body.environment !== opts.environment) return deny("World ID verified the proof in a different environment");
-      return { ok: true };
+      return { ok: true, method: "world-id" };
     } catch (e) {
       // Any error means no approval. Never fall through to allow.
       return deny(`World ID verification could not complete: ${e instanceof Error ? e.name : "error"}`);
@@ -94,5 +95,22 @@ export function createRpContextSigner(opts: { signingKeyHex: string; action: str
       action: opts.action,
       rp_context: { rp_id: opts.rpId, nonce: s.nonce, created_at: s.createdAt, expires_at: s.expiresAt, signature: s.sig },
     };
+  };
+}
+
+/**
+ * DEMO ONLY. Replaces World ID with an explicit bypass so the step-up flow can be shown without a verified human.
+ * It is enabled only when the service is started with WORLD_DEMO_BYPASS=1, accepts exactly {"demoBypass": true},
+ * and every use is logged loudly and stamped "demo-bypass" in the receipt and history. It only replaces step 13:
+ * the chain, scope, revocation and replay checks still run, and a request outside scope is still denied.
+ * Anything else is handed to the real verifier, or denied if there is none.
+ */
+export function withDemoBypass(inner?: ApprovalVerifier): ApprovalVerifier {
+  return async (proof, signal) => {
+    if (proof && typeof proof === "object" && !Array.isArray(proof) && (proof as { demoBypass?: unknown }).demoBypass === true) {
+      console.warn("⚠ DEMO BYPASS: step-up approved WITHOUT World ID. Never enable WORLD_DEMO_BYPASS outside a demo.");
+      return { ok: true, method: "demo-bypass" };
+    }
+    return inner ? inner(proof, signal) : { ok: false, detail: "a World ID proof is required" };
   };
 }

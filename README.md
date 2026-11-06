@@ -27,7 +27,7 @@ Evidence from a live Sepolia run, with transaction links: [docs/milestone-run.md
 | Root issuer (owner) | `0xD58Db2d84b2B0BDaE9e681A0d4Ff8b7b4A06d636` |
 | Payment asset | Circle USDC `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238` |
 | ENS root name (ENSv2) | `mandate-agents.eth`, per-account PermissionedResolver `0x55a536698C216b4d4802c3c7704dDb0Da47Bd865` |
-| Arkiv writer (Rabdi testnet, chain 7794095) | `0xc0afa1Fb169b523CBd7a2878eCEd1F7E664FfE28` |
+| Arkiv writer (Rabdi testnet, chain 7794095) | `0xD58Db2d84b2B0BDaE9e681A0d4Ff8b7b4A06d636` |
 
 Arkiv schema, owners and expiry: [arkiv/schema.md](arkiv/schema.md). Query you can run against our data:
 
@@ -42,7 +42,7 @@ const client = createPublicClient({ chain: rabdi({ accessKey: process.env.ARKIV_
 const { entities } = await client
   .select({ $key: true, id: true, issuer: true, subject: true, actions: true, maxAmount: true, expiry: true })
   .from(DelegationSchema)
-  .ownedBy("0xc0afa1Fb169b523CBd7a2878eCEd1F7E664FfE28")
+  .ownedBy("0xD58Db2d84b2B0BDaE9e681A0d4Ff8b7b4A06d636")
   .where(eq("actions", "payment.transfer"))
   .fetch();
 ```

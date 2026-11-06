@@ -6,7 +6,8 @@ import { parseRequest } from "@mandate/core";
 import type { VerifierConfig } from "@mandate/core";
 import { createApp } from "../src/app.js";
 import { createNonceStore } from "../src/nonces.js";
-import { approvalSignal, createRpContextSigner, createWorldVerifier } from "../src/worldid.js";
+import { approvalSignal, createRpContextSigner, createWorldVerifier, withDemoBypass } from "../src/worldid.js";
+import { createRunStore } from "../src/requests.js";
 
 const A = "0x1000000000000000000000000000000000000001";
 const B = "0x2000000000000000000000000000000000000002";
@@ -56,7 +57,7 @@ describe("createWorldVerifier", () => {
   it("accepts a proof bound to the request and forwards it as-is to the verify endpoint", async () => {
     const f = worldOk();
     const p = proof(sig);
-    expect(await verifier(f)(p, sig)).toEqual({ ok: true });
+    expect(await verifier(f)(p, sig)).toEqual({ ok: true, method: "world-id" });
     expect(f).toHaveBeenCalledOnce();
     expect(f.mock.calls[0]![0]).toBe("https://developer.world.org/api/v4/verify/rp_test");
     expect(JSON.parse((f.mock.calls[0]![1] as RequestInit).body as string)).toEqual(p);
@@ -78,7 +79,7 @@ describe("createWorldVerifier", () => {
   it("refuses a staging proof in production, and a production proof in staging", async () => {
     expect((await verifier(worldOk())(proof(sig, { environment: "staging" }), sig)).ok).toBe(false);
     expect((await verifier(worldOk("staging"), "staging")(proof(sig, { environment: "production" }), sig)).ok).toBe(false);
-    expect(await verifier(worldOk("staging"), "staging")(proof(sig, { environment: "staging" }), sig)).toEqual({ ok: true });
+    expect(await verifier(worldOk("staging"), "staging")(proof(sig, { environment: "staging" }), sig)).toEqual({ ok: true, method: "world-id" });
   });
 
   it("refuses a missing, empty or malformed proof", async () => {
@@ -196,5 +197,90 @@ describe("POST /world/context", () => {
     expect(res.body.rp_context.signature).toBeTruthy();
     expect(JSON.stringify(res.body)).not.toContain(signingKeyHex.slice(2));
     expect((await request(app).post("/world/context").send({ request: { nope: 1 } })).status).toBe(400);
+  });
+});
+
+describe("demo bypass (WORLD_DEMO_BYPASS)", () => {
+  const sig = signalOf(req(2));
+
+  it("accepts exactly {demoBypass: true}, and says so", async () => {
+    const v = withDemoBypass();
+    expect(await v({ demoBypass: true }, sig)).toEqual({ ok: true, method: "demo-bypass" });
+  });
+
+  it("refuses look-alikes, and everything else when there is no real verifier", async () => {
+    const v = withDemoBypass();
+    for (const bad of [undefined, null, "demoBypass", [], {}, { demoBypass: "true" }, { demoBypass: 1 }, { demoBypass: false }]) {
+      expect((await v(bad, sig)).ok).toBe(false);
+    }
+  });
+
+  it("hands real proofs to the real verifier", async () => {
+    const f = worldOk();
+    const v = withDemoBypass(verifier(f));
+    expect(await v(proof(sig), sig)).toEqual({ ok: true, method: "world-id" });
+    expect(f).toHaveBeenCalledOnce();
+    expect((await v(proof(signalOf(req(9))), sig)).ok).toBe(false); // a wrong real proof is still wrong
+  });
+
+  function build(over: Partial<Parameters<typeof createApp>[0]> = {}) {
+    const transfer = vi.fn(async () => "0xdeadbeef" as Hex);
+    const runs = createRunStore();
+    const app = createApp({
+      cfg,
+      verifyLocal: async () => ({ ok: true }),
+      checkRevocation: async () => ({ ok: true }),
+      reader: { read: async () => ({ revoked: false, blockTimestamp: 0 }) },
+      transfer, getBalance: async () => 1n,
+      resolveTarget: (t) => (t === "supplierA" ? ("0x4000000000000000000000000000000000000004" as Address) : null),
+      nonceStore: createNonceStore(), simulated: true, runs,
+      approvalVerifier: withDemoBypass(), demoBypass: true,
+      ...over,
+    });
+    return { app, transfer, runs };
+  }
+
+  it("executes an above-threshold payment and stamps the receipt and history as demo-bypass", async () => {
+    const { app, transfer } = build();
+    const res = await request(app).post("/execute").send({ chain, request: req(5), worldProof: { demoBypass: true } });
+    expect(res.status).toBe(200);
+    expect(res.body.approval).toBe("demo-bypass");
+    expect(transfer).toHaveBeenCalledOnce();
+    await vi.waitFor(async () => expect((await request(app).get("/requests")).body).toHaveLength(1));
+    const [run] = (await request(app).get("/requests")).body;
+    expect(run.stepUp).toEqual({ required: true, approved: "demo-bypass" });
+  });
+
+  it("does NOT override scope, chain or revocation checks: a denied request stays denied", async () => {
+    const { app, transfer } = build({ verifyLocal: async () => ({ ok: false, code: "OUT_OF_SCOPE", detail: "amount exceeds ceiling" }) });
+    const res = await request(app).post("/execute").send({ chain, request: req(6), worldProof: { demoBypass: true } });
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe("OUT_OF_SCOPE");
+    expect(transfer).not.toHaveBeenCalled();
+    const revoked = build({ checkRevocation: async () => ({ ok: false, code: "REVOKED", detail: "revoked" }) });
+    expect((await request(revoked.app).post("/execute").send({ chain, request: req(7), worldProof: { demoBypass: true } })).body.code).toBe("REVOKED");
+    expect(revoked.transfer).not.toHaveBeenCalled();
+  });
+
+  it("is still single-use per request: a replay with the bypass is a REPLAY", async () => {
+    const { app, transfer } = build();
+    await request(app).post("/execute").send({ chain, request: req(8), worldProof: { demoBypass: true } });
+    const again = await request(app).post("/execute").send({ chain, request: req(8), worldProof: { demoBypass: true } });
+    expect(again.body.code).toBe("REPLAY");
+    expect(transfer).toHaveBeenCalledOnce();
+  });
+
+  it("when the bypass is not enabled, the flag is just a bad proof", async () => {
+    const { app, transfer } = build({ approvalVerifier: undefined, demoBypass: false });
+    const res = await request(app).post("/execute").send({ chain, request: req(9), worldProof: { demoBypass: true } });
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe("STEP_UP_REQUIRED");
+    expect(transfer).not.toHaveBeenCalled();
+    expect((await request(app).get("/world/config")).body).toEqual({ bypass: false, worldId: false });
+  });
+
+  it("tells the dashboard when the bypass is on", async () => {
+    const { app } = build();
+    expect((await request(app).get("/world/config")).body.bypass).toBe(true);
   });
 });

@@ -18,7 +18,7 @@ Schema name: `mandate.delegation` (defined in [`packages/arkiv/src/schema.ts`](.
 
 **Fields we query on:** `rootId` (the Authority Explorer: "everything under this root"), `id` (the CLI follows `parent-id` links one delegation at a time), `issuer` / `subject` / `actions` (counterparty lookups).
 
-**Who owns each entity:** the writer wallet in the README, `0xc0afa1Fb169b523CBd7a2878eCEd1F7E664FfE28`. The spec has each issuer own its own entities; we use one publisher to avoid funding every agent wallet on a faucet (see `how-you-use-arkiv.md`). Ownership is not what makes the data trustworthy: reads filter on a trusted owner, and then **everything is re-verified locally** (id recomputed, signature recovered, every edge checked with the same `narrows` code the payment service uses, expiry re-checked, revocation read from Ethereum).
+**Who owns each entity:** the writer wallet in the README, `0xD58Db2d84b2B0BDaE9e681A0d4Ff8b7b4A06d636`. The spec has each issuer own its own entities; we use one publisher to avoid funding every agent wallet on a faucet (see `how-you-use-arkiv.md`). Ownership is not what makes the data trustworthy: reads filter on a trusted owner, and then **everything is re-verified locally** (id recomputed, signature recovered, every edge checked with the same `narrows` code the payment service uses, expiry re-checked, revocation read from Ethereum).
 
 **When each entity expires:** at the delegation's own `expiry` (`ExpirationTime.atDate`). Delegations are immutable: there is no patch. Revocation is not stored in Arkiv; it lives in the Ethereum registry, because it has to be shared state that a service reads at the moment of execution.
 

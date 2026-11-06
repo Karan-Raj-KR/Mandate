@@ -33,6 +33,8 @@ export type RunInput = {
   request: ExecutionRequest;
   verdict: Verdict;
   txHash?: Hex;
+  /** how the step-up approval was given, if it was */
+  approval?: "world-id" | "demo-bypass";
   now: number;
   /** Per-hop revocation status for display. Best effort: a failure shows hops as not revoked,
    *  which is harmless because the decision itself was already made by checkRevocation. */
@@ -48,7 +50,7 @@ export type RunStore = {
 export function createRunStore(max = 50): RunStore {
   const runs: Record<string, unknown>[] = [];
   return {
-    async add({ chain, request, verdict, txHash, now, statusOf }) {
+    async add({ chain, request, verdict, txHash, now, statusOf, approval }) {
       let revoked = chain.map(() => false);
       try {
         if (statusOf) revoked = await statusOf(chain);
@@ -72,7 +74,10 @@ export function createRunStore(max = 50): RunStore {
         request,
         verdict,
         ...(txHash ? { txHash } : {}),
-        stepUp: { required: !verdict.ok && verdict.code === "STEP_UP_REQUIRED" },
+        stepUp: {
+          required: approval !== undefined || (!verdict.ok && verdict.code === "STEP_UP_REQUIRED"),
+          ...(approval ? { approved: approval } : {}),
+        },
       });
       if (runs.length > max) runs.length = max;
     },
