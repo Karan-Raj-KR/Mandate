@@ -22,8 +22,8 @@ Everything here was read from live docs on 2026-11-06 unless marked otherwise.
 | 14 | MCP `check_schema` and `check_submission` | Both run a "shallow text check" and report `no blockers`, but explicitly do not certify anything. They accept free text only, so they cannot check a real `defineSchema` file. | Useful as a lint, but we could not use them to validate our actual schema code. A tool that takes the schema source would catch type and index mistakes before spending gas. |
 | 15 | Unknown filter semantics | We index `maxAmount` as `u256` (USDC minor units). The docs show `eq`/`gt` examples only on `str` and `dec` columns, so we cannot tell from the docs whether `gt("maxAmount", ...)` works on `u256`. | We do not rely on it: we filter on `rootId` and `id` and verify amounts locally. |
 
-## Open items (to be filled as we hit them)
+## Open items
 
-- Does `eq()` / `gt()` work on `u256` columns (for `maxAmount`)? Docs show filters on `str` and `dec` only.
-- Real write cost and faucet flow for the Rabdi wallet.
-- Latency from `createEntity` to the entity being queryable.
+- Does `eq()` / `gt()` work on `u256` columns (for `maxAmount`)? Docs show filters on `str` and `dec` only. Still untested; we do not rely on it.
+- **Answered:** write cost is about 0.0002 tGLM per entity (3 entities for 0.0007 tGLM), so a faucet claim of 10 tGLM covers thousands of writes.
+- **Answered:** an entity was returned by the first query issued after `createEntity` resolved, so we saw no indexing delay.
