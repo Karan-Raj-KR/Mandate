@@ -44,7 +44,7 @@ async function main(): Promise<void> {
     leafId: leaf.id,
     audience: serviceId(),
     action: "payment.transfer",
-    amount: USDC(10),
+    amount: BigInt(Math.round(Number(process.env.DEMO_AMOUNT ?? "10") * 1_000_000)),
     target: "supplierA",
     nonce: freshNonce(),
     deadline: BigInt(Math.floor(Date.now() / 1000) + 120),
