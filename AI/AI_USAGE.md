@@ -31,3 +31,4 @@ Append new rows only — never edit another person's row.
 | packages/payment-service/src/server.ts (env loading fix) | Load repo-root .env explicitly, edited by coding agent, reviewed by Dhruv |
 | LICENSE | Standard MIT license text added by coding agent, reviewed by Dhruv |
 | README.md (deployments table) | Deployment record added by coding agent, reviewed by Dhruv |
+| docs/milestone-run.md | Milestone evidence written by coding agent from live run output, reviewed by Dhruv |
