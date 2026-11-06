@@ -30,3 +30,4 @@ Append new rows only — never edit another person's row.
 | docs/research.md | Phase 2 research notes compiled by coding agent from live ENS, Circle, Arkiv and World docs, reviewed by Dhruv |
 | packages/payment-service/src/server.ts (env loading fix) | Load repo-root .env explicitly, edited by coding agent, reviewed by Dhruv |
 | LICENSE | Standard MIT license text added by coding agent, reviewed by Dhruv |
+| README.md (deployments table) | Deployment record added by coding agent, reviewed by Dhruv |
