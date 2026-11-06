@@ -4,10 +4,11 @@ import { createPublicClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 import type { Hex } from "viem";
-import { checkRevocation, loadVerifierConfig, makeRegistryReader, verifyLocal } from "@mandate/core";
+import { checkRevocation, loadVerifierConfig, makeRegistryReader, registryAbi, verifyLocal } from "@mandate/core";
 import { createApp } from "./app.js";
 import { getRealBalance, getSimulatedBalance } from "./ledger.js";
 import { createNonceStore } from "./nonces.js";
+import { createRunStore } from "./requests.js";
 import { createTargetResolver } from "./targets.js";
 import { createRealTransfer, createSimulatedTransfer } from "./transfer.js";
 
@@ -38,6 +39,15 @@ const getBalance = simulated
   : async () =>
       getRealBalance({ cfg, rpcUrl, serviceAddress: privateKeyToAccount(servicePk!).address });
 
+// Display only: per-hop revocation status for the dashboard. Never used to authorize anything.
+const statusOf = async (chain: { issuer: `0x${string}`; id: `0x${string}` }[]) =>
+  [...(await publicClient.readContract({
+    address: cfg.registry,
+    abi: registryAbi,
+    functionName: "statusOf",
+    args: [chain.map((d) => d.issuer), chain.map((d) => d.id)],
+  }))];
+
 const app = createApp({
   cfg,
   verifyLocal,
@@ -48,6 +58,9 @@ const app = createApp({
   resolveTarget: createTargetResolver(),
   nonceStore: createNonceStore(),
   simulated,
+  runs: createRunStore(),
+  statusOf,
+  dashboardOrigin: process.env.DASHBOARD_ORIGIN,
 });
 
 const port = Number(process.env.PORT ?? 4000);

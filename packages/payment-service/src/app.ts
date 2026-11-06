@@ -1,5 +1,6 @@
 import express from "express";
 import type { Express, Request, Response } from "express";
+import type { Hex } from "viem";
 import {
   MAX_PAYLOAD_BYTES,
   parseChain,
@@ -15,6 +16,7 @@ import type {
 } from "@mandate/core";
 import { requestDisplayDigest } from "./digest.js";
 import type { NonceStore } from "./nonces.js";
+import type { RunStore } from "./requests.js";
 import type { TargetResolver } from "./targets.js";
 import type { Transfer } from "./transfer.js";
 
@@ -43,6 +45,10 @@ export type AppDeps = {
   nonceStore: NonceStore;
   simulated: boolean;
   now?: () => number;
+  /** Dashboard history. Optional and display only; never read by an authorization decision. */
+  runs?: RunStore;
+  statusOf?: (chain: Delegation[]) => Promise<boolean[]>;
+  dashboardOrigin?: string;
 };
 
 function log(mark: "✓" | "✗", code: string, detail: string): void {
@@ -69,10 +75,17 @@ export function createApp(deps: AppDeps): Express {
     }
     log("✓", "SCHEMA", "chain and request parsed");
 
+    // Recorded after the response is sent; a failure here must never affect the response.
+    const record = (verdict: Verdict, txHash?: Hex): void => {
+      if (!deps.runs) return;
+      deps.runs.add({ chain, request, verdict, txHash, now, statusOf: deps.statusOf }).catch(() => {});
+    };
+
     const verdict = await deps.verifyLocal(chain, request, deps.cfg, now);
     if (!verdict.ok) {
       log("✗", verdict.code, verdict.detail);
       res.status(403).json(toWire(verdict));
+      record(verdict);
       return;
     }
     log("✓", "LOCAL_VERIFY", "chain and request verified");
@@ -84,6 +97,7 @@ export function createApp(deps: AppDeps): Express {
         code: "STEP_UP_REQUIRED",
         detail: "amount requires fresh World ID approval",
       });
+      record({ ok: false, code: "STEP_UP_REQUIRED", detail: "amount requires fresh World ID approval" });
       return;
     }
     log("✓", "STEP_UP", "below step-up threshold");
@@ -94,6 +108,7 @@ export function createApp(deps: AppDeps): Express {
     if (!deps.nonceStore.checkAndConsume(request.nonce)) {
       log("✗", "REPLAY", `nonce ${request.nonce} already used`);
       res.status(403).json({ ok: false, code: "REPLAY", detail: "nonce already used" });
+      record({ ok: false, code: "REPLAY", detail: "nonce already used" });
       return;
     }
     log("✓", "NONCE", "nonce consumed");
@@ -102,6 +117,7 @@ export function createApp(deps: AppDeps): Express {
     if (!revocation.ok) {
       log("✗", revocation.code, revocation.detail);
       res.status(403).json(toWire(revocation));
+      record(revocation);
       return;
     }
     log("✓", "REVOCATION", "no revoked delegation in chain");
@@ -110,6 +126,7 @@ export function createApp(deps: AppDeps): Express {
     if (!targetAddress) {
       log("✗", "SCHEMA", `unknown target ${request.target}`);
       res.status(400).json({ ok: false, code: "SCHEMA", detail: `unknown target ${request.target}` });
+      record({ ok: false, code: "SCHEMA", detail: `unknown target ${request.target}` });
       return;
     }
 
@@ -127,11 +144,20 @@ export function createApp(deps: AppDeps): Express {
           ...(deps.simulated ? { simulated: true } : {}),
         }),
       );
+      record({ ok: true }, txHash);
     } catch (err) {
       const detail = err instanceof Error ? err.message : "transfer failed";
       log("✗", "EXECUTION_FAILED", detail);
       res.status(502).json({ ok: false, code: "EXECUTION_FAILED", detail });
+      record({ ok: false, code: "EXECUTION_FAILED", detail });
     }
+  });
+
+  // Read-only decision history for the dashboard. Public data: signed delegations and verdicts, no secrets.
+  app.get("/requests", (_req: Request, res: Response) => {
+    res.setHeader("access-control-allow-origin", deps.dashboardOrigin ?? "http://localhost:3000");
+    res.setHeader("vary", "origin");
+    res.status(200).json(deps.runs ? deps.runs.list() : []);
   });
 
   app.get("/balance", async (_req: Request, res: Response) => {
