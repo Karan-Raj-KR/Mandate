@@ -10,6 +10,7 @@ import { LIMITS } from "@/lib/limits";
 
 const LINKS = [
   { href: "/story", label: "Story" },
+  { href: "/pitch", label: "Pitch" },
   { href: "/", label: "Demo" },
   { href: "/explorer", label: "Registry" },
   { href: "/verify", label: "Verify" },
@@ -38,7 +39,7 @@ function Limits() {
   }, [open]);
   return (
     <div ref={ref} className="relative">
-      <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="px-1.5 py-2 transition-colors hover:text-[#ffb4a8] sm:px-3">Limits</button>
+      <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="px-1 py-2 transition-colors hover:text-[#ffb4a8] min-[400px]:px-1.5 sm:px-3">Limits</button>
       <AnimatePresence>
         {open && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="paper absolute right-0 z-50 mt-3 w-[min(20rem,80vw)] whitespace-normal p-4 text-xs shadow-2xl">
@@ -65,14 +66,14 @@ export function Nav() {
       >
         <Link href="/story" aria-label="Mandate" className="grid size-8 place-items-center transition-transform duration-300 hover:rotate-12 sm:size-9"><Mark className="size-5" /></Link>
         {LINKS.map((l) => (
-          <Link key={l.href} href={l.href} aria-current={path === l.href ? "page" : undefined} onMouseEnter={() => setHover(l.href)} onFocus={() => setHover(l.href)} className="relative px-1.5 py-2 sm:px-3">
-            {lit === l.href && <motion.span layoutId="nav-lit" transition={{ type: "spring", stiffness: 380, damping: 32 }} className="absolute inset-x-1.5 bottom-1 h-0.5 bg-[#ff5a40] sm:inset-x-3" />}
+          <Link key={l.href} href={l.href} aria-current={path === l.href ? "page" : undefined} onMouseEnter={() => setHover(l.href)} onFocus={() => setHover(l.href)} className="relative px-1 py-2 min-[400px]:px-1.5 sm:px-3">
+            {lit === l.href && <motion.span layoutId="nav-lit" transition={{ type: "spring", stiffness: 380, damping: 32 }} className="absolute inset-x-1 bottom-1 h-0.5 bg-[#ff5a40] min-[400px]:inset-x-1.5 sm:inset-x-3" />}
             <span className="relative">{l.label}</span>
           </Link>
         ))}
         <Limits key={path} />
         <span className="hidden px-2 lg:block"><PresenterToggle /></span>
-        {MOCK && path !== "/verify" && <span className="mx-1.5 text-xs font-medium text-warn" title="NEXT_PUBLIC_SERVICE_URL is not set: these are fixtures, not live results">Mock<span className="hidden sm:inline"> data</span></span>}
+        {MOCK && path !== "/verify" && path !== "/pitch" && <span className="mx-1.5 text-xs font-medium text-warn" title="NEXT_PUBLIC_SERVICE_URL is not set: these are fixtures, not live results">Mock<span className="hidden sm:inline"> data</span></span>}
       </motion.nav>
     </MotionConfig>
   );
