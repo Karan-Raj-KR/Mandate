@@ -2,10 +2,11 @@
 import { useEffect, useState } from "react";
 import { ACTIONS } from "@mandate/core";
 import { Moire } from "@/components/story/art";
+import { authority, Terms, Ticket } from "@/components/ticket";
 import { Badge, Button, Hash, time, usdc } from "@/components/ui";
 import { exploreAuthority, MOCK, type AuthorityRow } from "@/lib/api";
 
-const input = " border-0 border-b-2 border-white/25 bg-black/30 px-3 py-2 text-sm focus:border-[#ff5a40] focus:outline-none transition-colors duration-300";
+const input = "h-11 w-full min-w-0  border-0 border-b-2 border-white/25 bg-[#171211] px-3 text-fg text-sm focus:border-[#ff5a40] focus:outline-none transition-colors duration-300";
 
 /** USABLE only when every check passed; otherwise name why. Unreadable state is DENIED, never "unknown". */
 function stampOf(r: AuthorityRow): { label: string; tone: "ok" | "bad" } {
@@ -40,13 +41,13 @@ export default function Registry() {
     (!f.to || d.scope.expiry <= Number(f.to)));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-12">
       <section className="m-band m-panel relative overflow-hidden">
-        <Moire className="m-spin pointer-events-none absolute -right-[10%] -top-[30%] size-[min(60vw,46rem)] opacity-20" tone="#ffd2c8" />
-        <h1 className="m-display relative text-[clamp(2.5rem,7vw,7rem)]">Live registry</h1>
-        <p className="relative mt-4 max-w-3xl text-lg">Which permits under an owner can still be used right now? Each one is looked up, its signature and chain checked, and its revocation read from Ethereum. Only permits that pass everything are stamped usable.</p>
-        <form className="relative mt-8 flex flex-wrap gap-2" onSubmit={(e) => { e.preventDefault(); search(); }}>
-        <input className={`${input} min-w-64 flex-1 font-mono`} value={root} onChange={(e) => setRoot(e.target.value)} aria-label="owner ENS name or root permit id" placeholder="owner ENS name or root permit id (0x…)" />
+        <Moire className="pointer-events-none absolute -right-[10%] -top-[30%] size-[min(60vw,46rem)] opacity-20" tone="#ffd2c8" />
+        <h1 className="m-display relative text-[clamp(2rem,4.6vw,4.25rem)]">Live registry</h1>
+        <p className="relative mt-3 max-w-3xl">Which permits under an owner can still be used right now? Each one is looked up, its signature and chain checked, and its revocation read from Ethereum. Only permits that pass everything are stamped usable.</p>
+        <form className="relative mt-6 flex gap-[3px]" onSubmit={(e) => { e.preventDefault(); search(); }}>
+        <input className={`${input} flex-1 font-mono`} value={root} onChange={(e) => setRoot(e.target.value)} aria-label="owner ENS name or root permit id" placeholder="owner ENS name or root permit id (0x…)" />
         <Button tone="ink" type="submit">Look up</Button>
         </form>
       </section>
@@ -60,56 +61,58 @@ export default function Registry() {
 
       {rows && (
         <>
-          <fieldset className="grid gap-4 text-xs text-muted sm:grid-cols-3 lg:grid-cols-6">
-            <legend className="sr-only">Filters</legend>
-            <label className="flex flex-col gap-1">Issued by<input className={input} value={f.issuer} onChange={(e) => setF({ ...f, issuer: e.target.value })} /></label>
-            <label className="flex flex-col gap-1">Held by<input className={input} value={f.subject} onChange={(e) => setF({ ...f, subject: e.target.value })} /></label>
-            <label className="flex flex-col gap-1">Allows all of
-              <select multiple className={input} value={f.actions} onChange={(e) => setF({ ...f, actions: [...e.target.selectedOptions].map((o) => o.value) })}>
-                {ACTIONS.map((a) => <option key={a}>{a}</option>)}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1">Level
-              <select className={input} value={f.depth} onChange={(e) => setF({ ...f, depth: e.target.value })}>
-                <option value="">any</option>
-                {[0, 1, 2, 3, 4, 5, 6, 7].map((n) => <option key={n}>{n}</option>)}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1">Expires after (unix s)<input className={`${input} font-mono`} inputMode="numeric" value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} /></label>
-            <label className="flex flex-col gap-1">Expires before (unix s)<input className={`${input} font-mono`} inputMode="numeric" value={f.to} onChange={(e) => setF({ ...f, to: e.target.value })} /></label>
-          </fieldset>
+          <section>
+            <h2 className="m-serif mb-4 text-4xl">Filter</h2>
+            <fieldset className="grid gap-[3px] text-xs text-muted sm:grid-cols-3 lg:grid-cols-5">
+              <legend className="sr-only">Filters</legend>
+              <label className="flex flex-col gap-1">Issued by<input className={input} value={f.issuer} onChange={(e) => setF({ ...f, issuer: e.target.value })} /></label>
+              <label className="flex flex-col gap-1">Held by<input className={input} value={f.subject} onChange={(e) => setF({ ...f, subject: e.target.value })} /></label>
+              <label className="flex flex-col gap-1">Level
+                <select className={input} value={f.depth} onChange={(e) => setF({ ...f, depth: e.target.value })}>
+                  <option value="">any</option>
+                  {[0, 1, 2, 3, 4, 5, 6, 7].map((n) => <option key={n}>{n}</option>)}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">Expires after (unix s)<input className={`${input} font-mono`} inputMode="numeric" value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} /></label>
+              <label className="flex flex-col gap-1">Expires before (unix s)<input className={`${input} font-mono`} inputMode="numeric" value={f.to} onChange={(e) => setF({ ...f, to: e.target.value })} /></label>
+            </fieldset>
+            <div role="group" aria-label="Allows all of" className="mt-3 flex flex-wrap items-center gap-[3px]">
+              <span className="mr-3 text-xs text-muted">Allows all of</span>
+              {ACTIONS.map((a) => {
+                const on = f.actions.includes(a);
+                return <Button key={a} tone={on ? "ink" : "plain"} aria-pressed={on} onClick={() => setF({ ...f, actions: on ? f.actions.filter((x) => x !== a) : [...f.actions, a] })}>{a}</Button>;
+              })}
+            </div>
+          </section>
 
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[74rem] border-collapse text-left text-xs [&_td]:px-3 [&_td]:py-3 [&_td]:align-top [&_th]:px-3 [&_tbody_tr]:border-b [&_tbody_tr]:border-line [&_tbody_tr]:transition-colors [&_tbody_tr]:duration-300 hover:[&_tbody_tr]:bg-white/3">
-              <thead className="text-xs text-muted">
-                <tr className="h-[2.4rem] border-b border-line">
-                  <th>Status</th><th>Permit No.</th><th>Issued by → held by</th><th>Level</th><th>Actions</th><th>Max per request</th><th>Pay to</th><th>Expires</th><th>Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {shown.map((r) => {
-                  const s = stampOf(r);
-                  const notes = r.reasons.filter((x) => !x.startsWith("signature: mock"));
-                  return (
-                    <tr key={r.d.id}>
-                      <td><Pill tone={s.tone}>{s.label}</Pill></td>
-                      <td><Hash value={r.d.id} /></td>
-                      <td className="whitespace-nowrap" style={{ paddingLeft: `${0.75 + r.depth}rem` }}>{r.d.issuerName.split(".")[0]} → {r.d.subjectName.split(".")[0]}</td>
-                      <td className="tabular-nums">{r.depth}</td>
-                      <td>{r.d.scope.actions.join(", ")}</td>
-                      <td className="whitespace-nowrap tabular-nums">{usdc(r.d.scope.maxAmount)}</td>
-                      <td>{r.d.scope.targets.join(", ")}</td>
-                      <td className="whitespace-nowrap tabular-nums">{time(r.d.scope.expiry)}</td>
-                      <td className={notes.length ? "text-bad" : "text-muted"}>
-                        {notes.length ? notes.map((n) => <p key={n}>{n}</p>) : MOCK ? "signature not verified (mock fixture)" : "all checks passed"}
-                      </td>
-                    </tr>
-                  );
-                })}
-                {!shown.length && <tr><td colSpan={9} className="text-muted">No permits match the filters.</td></tr>}
-              </tbody>
-            </table>
-          </div>
+          <section>
+            <h2 className="m-serif mb-4 text-4xl">Permits</h2>
+            {!shown.length && <p className="text-muted">No permits match the filters.</p>}
+            <div className="grid grid-cols-1 gap-[3px] sm:grid-cols-2 xl:grid-cols-4">
+              {shown.map((r) => {
+                const s = stampOf(r);
+                const notes = r.reasons.filter((x) => !x.startsWith("signature: mock"));
+                return (
+                  <Ticket
+                    key={r.d.id} who={`${r.d.issuerName.split(".")[0]} → ${r.d.subjectName.split(".")[0]}`} sub={r.d.subjectName} amount={usdc(r.d.scope.maxAmount)}
+                    tone={s.tone === "ok" ? "live" : s.label === "Denied" ? "grew" : "dead"} share={authority(r.d.scope.maxAmount)} className="m-lift"
+                    foot={<Pill tone={s.tone}>{s.label}</Pill>}
+                  >
+                    <Terms rows={[
+                      ["May", r.d.scope.actions.join(", ")],
+                      ["Pay", r.d.scope.targets.join(", ")],
+                      ["Until", time(r.d.scope.expiry)],
+                      ["Level", r.depth],
+                      ["Permit", <Hash key="h" value={r.d.id} />],
+                    ]} />
+                    <div className="mt-3 text-xs">
+                      {notes.length ? notes.map((n) => <p key={n} className="mt-1 break-words">{n}</p>) : <p className="text-muted">{MOCK ? "Signature not verified (mock fixture)" : "All checks passed"}</p>}
+                    </div>
+                  </Ticket>
+                );
+              })}
+            </div>
+          </section>
         </>
       )}
     </div>
